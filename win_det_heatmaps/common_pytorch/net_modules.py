@@ -3,13 +3,14 @@ import logging
 import torch
 import torch.nn as nn
 from torch.nn.parallel.scatter_gather import gather
+import cv2
 
 from common.speedometer import BatchEndParam
 from common_pytorch.dataset.all_dataset import *
 from common_pytorch.common_loss.loss_recorder import LossRecorder
 from common.utility.image_processing_cv import flip
-from common_pytorch.group.tag_group import HeatmapParser, group_corners_on_tags
-
+from common_pytorch.group.tag_group import HeatmapParser, group_corners_on_tags, mapInputForPostProcessing
+from post_processing.postProcess import PostProcess
 
 def trainNet(nth_epoch, train_data_loader, network, optimizer, loss_config, loss_func, speedometer=None):
     """
@@ -204,16 +205,25 @@ def inferNet(infer_data_loader, network, merge_hm_flip_func, merge_tag_flip_func
     ############################ Group corners on TAG ##############################
     # 1. Group Corners
     parser = HeatmapParser(loss_config, test_config.useCenter, test_config.centerT, imdb_list)
+    print('imdb list:')
+    # print(imdb_list[2]['image'])
     for n_s in range(num_samples):
         try:
             group_corners_wz_score = \
                 group_corners_on_tags(n_s, parser, heatmaps[n_s], tagmaps[n_s], patch_width, patch_height,
                                       imdb_list[n_s]['im_width'], imdb_list[n_s]['im_height'],
                                       rectify = test_config.rectify, winScoreThres = test_config.windowT)
+            print('windowScores: ' + str(group_corners_wz_score))
             windows_list_with_score.append(group_corners_wz_score)
+            print("windowCount: " + str(len(group_corners_wz_score)))
+            print(mapInputForPostProcessing(group_corners_wz_score))
+            # postProcess = PostProcess(cv2.imread(imdb_list[n_s]['image'], 1), group_corners_wz_score)
+            # postProcess.runPostProcessingModule()
         except Exception as e:
             assert 0, (n_s, e, os.path.basename(imdb_list[n_s]['image']))
-            # print(e, '  ', os.path.basename(imdb_list[n_s]['image']))
+            print(e, '  ', os.path.basename(imdb_list[n_s]['image']))
 
     # 2. Infer or Evaluate
+    print("windows list:")
+    print(windows_list_with_score)
     facade.plot(windows_list_with_score, imdb_list, final_output_path)

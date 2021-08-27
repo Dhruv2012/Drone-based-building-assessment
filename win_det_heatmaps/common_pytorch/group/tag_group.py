@@ -174,7 +174,10 @@ class HeatmapParser():
         Get topK keypoint score/tag/location
         '''
         coords_in_patch_with_score_id = get_coords_from_heatmaps_with_NMS(det[:4])
-
+        print('coords_in_patch_with_score_id: ' + str(coords_in_patch_with_score_id))
+        print('coords_in_patch_with_score_id: ' + str(len(coords_in_patch_with_score_id)))
+        for c in coords_in_patch_with_score_id:
+            print(c.shape)
         val_k = [c_pts[:, 2, np.newaxis] for c_pts in coords_in_patch_with_score_id]
         ind_k = [(c_pts[:, 0:2] + 0.5).astype(int) for c_pts in coords_in_patch_with_score_id]
 
@@ -264,12 +267,29 @@ def group_corners_on_tags(idx, parser, dets, tags, patch_width, patch_height, im
     ratio = np.array([ratio, ratio])
 
     grouped = parser.parse(np.float32(dets), np.float32(tags), idx, ratio, rectify)  # shape=(num_of_windows, 4, 4)
-
+    
     linked_window = list() # convert format & do rectify
     for n_w in range(len(grouped)):
         score = np.mean(grouped[n_w][:,2])
         if score < winScoreThres: #skip low-score windows
             continue
         linked_window.append(convert_to_dict(grouped[n_w]))
-
+    
+    print("linked_window: " + str(linked_window))
+    print("linked_window size: " + str(len(linked_window)))
     return linked_window
+
+
+def mapInputForPostProcessing(group_corners_wz_score):
+    mappedInput = []
+    # print('################ Inside Post Processing Method: mapInput ##########')
+    for window in group_corners_wz_score:
+        # print(window['position'])
+        # print(window['position'][0])
+        for windowCoords in window['position']:
+            mappedInput.append([windowCoords[0], windowCoords[1]])
+
+    mappedInputArr = np.array(mappedInput)
+    mappedInputArr = np.reshape(mappedInputArr,(mappedInputArr.shape[0]//4 , 4, mappedInputArr.shape[1]))
+    # print('################ Exiting Post Processing Method: mapInput ##########')
+    return mappedInputArr
