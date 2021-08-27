@@ -16,6 +16,7 @@ class PostProcess():
         self.img_rgb = np.copy(img)
         self.img_show = np.copy(img)
         self.img_copy = np.copy(img)
+        self.img_copy_new = np.copy(img)
         self.mappedInputArr = None
         self.mapInputForPostProcessing(group_corners_wz_score)
         self.window_count = 0
@@ -84,21 +85,21 @@ class PostProcess():
         #print(boxes_tuples)
 
         # apply non-maxima suppression to the rectangles
-        pick, resScores = non_max_suppression_fast(np.array(boxes_tuples), overlapThresh, res_scores_all, flag)
+        pick, resScores = self.non_max_suppression_fast(np.array(boxes_tuples), overlapThresh, res_scores_all, flag)
         print("[INFO] {} matched locations *after* NMS".format(len(pick)))
         # loop over the final bounding boxes
         print(pick)
         for (sX, sY, eX, eY) in pick:
             # draw the bounding box on the image
-            cv2.rectangle(img_copy_new, (sX, sY), (eX, eY),
+            cv2.rectangle(self.img_copy_new, (sX, sY), (eX, eY),
                 (255, 0, 0), 3)
         plt.figure(num = 'nms')
-        plt.imshow(img_copy_new)
+        plt.imshow(self.img_copy_new)
         plt.title("Image After Local NMS")
         plt.show()
         return pick, resScores
     
-    def matchTemplate(self, ind, coordinates, img_rgb, fileName, padding=10):    
+    def matchTemplate(self, coordinates, fileName, padding=10):    
 
         startX, endX, startY, endY = self.calculateRange(coordinates, padding)
         plt.imshow(self.img_rgb)
@@ -117,6 +118,13 @@ class PostProcess():
         rects = []
         res_scores = []
         for i in [-2.5, 0, 2.5]:
+
+            ## DEBUG ##
+            plt.figure(num= 'DEBUG!!')
+            plt.imshow(searchImg)  
+            plt.title('dEBUG search Image')
+            plt.show()
+            
             # Apply rotation and shear to template
             rotatedTemplate = imutils.rotate(template, i)
             plt.imshow(rotatedTemplate)
@@ -128,7 +136,7 @@ class PostProcess():
             # Store width in variable w and height in variable h of template  
             tW, tH = template_gray.shape[::-1]   
             # Now we perform match operations.   
-            res = cv2.matchTemplate(searchImg_gray,template_gray,cv2.TM_CCOEFF_NORMED)   
+            res = cv2.matchTemplate(searchImg_gray,template_gray,cv2.TM_CCOEFF_NORMED, 10)   
             # Declare a threshold   
             threshold = 0.550
             # Store the coordinates of matched region in a numpy array   
@@ -142,7 +150,7 @@ class PostProcess():
                 res_scores.append(res[pt[1]][pt[0]])
 
         # Now display the final matched template image
-        plt.figure(num=ind)
+        plt.figure(num= 'SearchImage')
         plt.imshow(searchImg_copy)  
         plt.title('Result on search Image')
         plt.show()
@@ -163,14 +171,7 @@ class PostProcess():
         # Now display the final matched template image   
         plt.figure(num = 'mapped' + fileName, figsize=(20,10))
         plt.imshow(self.img_show)  
-        plt.title('Final Result')
-
-        tW_new = tW * np.ones(len(mappedCoords),dtype=int)
-        tH_new = tH * np.ones(len(mappedCoords),dtype=int)
-        
-        rects_all = rects_all + mappedCoords
-        tW_all.append(tW_new)
-        tH_all.append(tH_new)
+        plt.title('Image - All Template Matching Result')
         
         coord = (coordinates[0][0],coordinates[0][1],coordinates[2][0],coordinates[2][1])
         mapped_new = mappedCoords + [coord]
@@ -180,7 +181,7 @@ class PostProcess():
         
         return mappedrects_picked, res_scores_picked
 
-    def non_max_suppression_fast(boxes, overlapThresh, res_scores_all, flag):
+    def non_max_suppression_fast(self, boxes, overlapThresh, res_scores_all, flag):
         # if there are no boxes, return an empty list
         if len(boxes) == 0:
             return []
@@ -228,11 +229,11 @@ class PostProcess():
             # compute the width and height of the bounding box
             w = np.maximum(0, xx2 - xx1 + 1)
             h = np.maximum(0, yy2 - yy1 + 1)
-            print('w',w)
-            print('h',h)
+            # print('w',w)
+            # print('h',h)
             # compute the ratio of overlap
             overlap = (w * h) / area[idxs[:last]]
-            print('overlap', overlap)
+            # print('overlap', overlap)
             # delete all indexes from the index list that have
             idxs = np.delete(idxs, np.concatenate(([last],
                 np.where(overlap > overlapThresh)[0])))
@@ -250,7 +251,7 @@ class PostProcess():
         return mappedCoords
 
         ############### Calculating storey #####################
-    def calculateStoreys(coords):
+    def calculateStoreys(self, coords):
         yTop = coords[:,1]
         yBottom = coords[:,3]
         yAvg = (yTop + yBottom)/2
@@ -287,15 +288,14 @@ class PostProcess():
 
     
     def runPostProcessingModule(self):
-        rects_all = []
 
         mappedrects_picked_list = []
         res_scores_picked_list = []
         mappedrects_picked_list = np.array(mappedrects_picked_list)
         res_scores_picked_list = np.array(res_scores_picked_list)
 
-        for ind in range(coords.shape[0]):
-            mappedrects_picked, res_scores_picked = self.matchTemplate(ind, coords[ind], img_rgb, fileName, padding=10)
+        for ind in range(self.mappedInputArr.shape[0]):
+            mappedrects_picked, res_scores_picked = self.matchTemplate(self.mappedInputArr[ind], ' ', padding=10)
             if ind == 0:
                 mappedrects_picked_list = mappedrects_picked
                 #res_scores_picked_list = np.expand_dims(res_scores_picked,0)
@@ -342,10 +342,10 @@ class PostProcess():
         logging.info('final Bounding boxes after PostProcess: %s', (pick))
         for (sX, sY, eX, eY) in pick:
             # draw the bounding box on the image
-            cv2.rectangle(img_copy, (sX, sY), (eX, eY),
+            cv2.rectangle(self.img_copy, (sX, sY), (eX, eY),
                 (255, 0, 0), 3)
         plt.figure(num = 'nms')
-        plt.imshow(img_copy)
+        plt.imshow(self.img_copy)
         plt.title("After NMS")
 
         cv2.imwrite('postProcess.png', self.img_copy)

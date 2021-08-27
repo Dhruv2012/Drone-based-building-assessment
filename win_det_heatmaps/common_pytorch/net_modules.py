@@ -217,8 +217,8 @@ def inferNet(infer_data_loader, network, merge_hm_flip_func, merge_tag_flip_func
             windows_list_with_score.append(group_corners_wz_score)
             print("windowCount: " + str(len(group_corners_wz_score)))
             print(mapInputForPostProcessing(group_corners_wz_score))
-            # postProcess = PostProcess(cv2.imread(imdb_list[n_s]['image'], 1), group_corners_wz_score)
-            # postProcess.runPostProcessingModule()
+            postProcess = PostProcess(cv2.imread(imdb_list[n_s]['image'], 1), group_corners_wz_score)
+            postProcess.runPostProcessingModule()
         except Exception as e:
             assert 0, (n_s, e, os.path.basename(imdb_list[n_s]['image']))
             print(e, '  ', os.path.basename(imdb_list[n_s]['image']))
