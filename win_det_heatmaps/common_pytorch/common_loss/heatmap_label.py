@@ -46,10 +46,10 @@ def compute_resized_coords(coords, resizeFactor):
 def get_coords_from_heatmaps_with_NMS(heatmap, sigma=2, param_thre1=0.1):
     assert isinstance(heatmap, np.ndarray)
 
-    print('get_coords_from_heatmaps_with_NMS: ' + str(heatmap.shape[0]))
+    # print('get_coords_from_heatmaps_with_NMS: ' + str(heatmap.shape[0]))
     all_peaks = []
     peak_counter = 0
-    print('get_coords_from_heatmaps_with_NMS: ' + str(heatmap))
+    # print('get_coords_from_heatmaps_with_NMS: ' + str(heatmap))
 
     for part in range(heatmap.shape[0]):
         map_ori = heatmap[part, :, :]
@@ -74,18 +74,18 @@ def get_coords_from_heatmaps_with_NMS(heatmap, sigma=2, param_thre1=0.1):
             (map_gau >= map_left, map_gau >= map_right, map_gau >= map_up,
              map_gau >= map_down, map_gau > param_thre1))
 
-        print('peaks_binary: ' + str(peaks_binary))
+        # print('peaks_binary: ' + str(peaks_binary))
 
         peaks = zip(np.nonzero(peaks_binary)[1], np.nonzero(peaks_binary)[0])  # note reverse
         peaks = list(peaks)
-        print('peaks: ' + str(peaks))
+        # print('peaks: ' + str(peaks))
         peaks_with_score = [x + (map_ori[x[1], x[0]],) for x in peaks]
         ids = range(peak_counter, peak_counter + len(peaks))
         peaks_with_score_and_id = [peaks_with_score[i] + (ids[i],) for i in range(len(ids))]
 
         all_peaks.append(np.array(peaks_with_score_and_id))
         peak_counter += len(peaks)
-    print('all_peaks: '  + str(all_peaks))
+    # print('all_peaks: '  + str(all_peaks))
     return all_peaks
 
 def generate_gaussian_heatmap_label(feat_stride, patch_width, patch_height, window, sigma):

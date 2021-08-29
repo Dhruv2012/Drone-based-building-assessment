@@ -11,6 +11,8 @@ from common_pytorch.common_loss.loss_recorder import LossRecorder
 from common.utility.image_processing_cv import flip
 from common_pytorch.group.tag_group import HeatmapParser, group_corners_on_tags, mapInputForPostProcessing
 from post_processing.postProcess import PostProcess
+import pickle
+import numpy as np
 
 def trainNet(nth_epoch, train_data_loader, network, optimizer, loss_config, loss_func, speedometer=None):
     """
@@ -213,17 +215,38 @@ def inferNet(infer_data_loader, network, merge_hm_flip_func, merge_tag_flip_func
                 group_corners_on_tags(n_s, parser, heatmaps[n_s], tagmaps[n_s], patch_width, patch_height,
                                       imdb_list[n_s]['im_width'], imdb_list[n_s]['im_height'],
                                       rectify = test_config.rectify, winScoreThres = test_config.windowT)
-            print('windowScores: ' + str(group_corners_wz_score))
+            # print('windowScores: ' + str(group_corners_wz_score))
             windows_list_with_score.append(group_corners_wz_score)
-            print("windowCount: " + str(len(group_corners_wz_score)))
-            print(mapInputForPostProcessing(group_corners_wz_score))
-            postProcess = PostProcess(cv2.imread(imdb_list[n_s]['image'], 1), group_corners_wz_score)
-            postProcess.runPostProcessingModule()
+            # print("windowCount: " + str(len(group_corners_wz_score)))
+            # postProcess = PostProcess(cv2.imread(imdb_list[n_s]['image'], 1), group_corners_wz_score)
+            # postProcess.runPostProcessingModule()
         except Exception as e:
             assert 0, (n_s, e, os.path.basename(imdb_list[n_s]['image']))
             print(e, '  ', os.path.basename(imdb_list[n_s]['image']))
 
     # 2. Infer or Evaluate
-    print("windows list:")
-    print(windows_list_with_score)
-    facade.plot(windows_list_with_score, imdb_list, final_output_path)
+    # print("windows list:")
+    # print(windows_list_with_score)
+    imdb_list_1 = facade.plot(windows_list_with_score, imdb_list, final_output_path)
+    # print('DEBUG INPUT PP:', imdb_list)
+    # print(type(imdb_list))
+
+    recordedCoordsOfEntireSeq = []
+    for n_s in range(num_samples):
+        # print("#######" + str(imdb_list[n_s]['image']) + "#########")
+        group_corners_wz_score = windows_list_with_score[n_s]
+        print('windowScores: ' + str(group_corners_wz_score))
+        print("windowCount: " + str(len(group_corners_wz_score)))
+        print(mapInputForPostProcessing(group_corners_wz_score))
+        postProcess = PostProcess(imdb_list_1[n_s]['image'], group_corners_wz_score)
+        boundingBoxes = postProcess.runPostProcessingModule()
+        print(boundingBoxes.shape)
+        recordedCoordsOfEntireSeq.append(boundingBoxes)
+    print(recordedCoordsOfEntireSeq)
+
+    with open('coordinatesFromPostProcessing-5.csv', 'ab') as f:
+        for array in recordedCoordsOfEntireSeq:
+            array = array.ravel()
+            array = array.reshape(-1, array.shape[0])
+            np.savetxt(f, array, delimiter=',')
+    # np.savetxt("coordinatesFromPostProcessing-1.csv", np.array(recordedCoordsOfEntireSeq), delimiter=',') 

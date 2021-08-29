@@ -163,8 +163,8 @@ class HeatmapParser():
         self.centerThreshold = centerThreshold
         self.ae_feat_dim = loss_config.ae_feat_dim
 
-        print("Param Tag_threshold", self.param.tag_threshold)
-        print("Param detection_threshold", self.param.detection_threshold)
+        # print("Param Tag_threshold", self.param.tag_threshold)
+        # print("Param detection_threshold", self.param.detection_threshold)
 
     def match(self, tag_k, loc_k, val_k):
         return match_by_tag([tag_k, loc_k, val_k], self.param)
@@ -174,10 +174,10 @@ class HeatmapParser():
         Get topK keypoint score/tag/location
         '''
         coords_in_patch_with_score_id = get_coords_from_heatmaps_with_NMS(det[:4])
-        print('coords_in_patch_with_score_id: ' + str(coords_in_patch_with_score_id))
-        print('coords_in_patch_with_score_id: ' + str(len(coords_in_patch_with_score_id)))
-        for c in coords_in_patch_with_score_id:
-            print(c.shape)
+        # print('coords_in_patch_with_score_id: ' + str(coords_in_patch_with_score_id))
+        # print('coords_in_patch_with_score_id: ' + str(len(coords_in_patch_with_score_id)))
+        # for c in coords_in_patch_with_score_id:
+        #     print(c.shape)
         val_k = [c_pts[:, 2, np.newaxis] for c_pts in coords_in_patch_with_score_id]
         ind_k = [(c_pts[:, 0:2] + 0.5).astype(int) for c_pts in coords_in_patch_with_score_id]
 
@@ -275,8 +275,8 @@ def group_corners_on_tags(idx, parser, dets, tags, patch_width, patch_height, im
             continue
         linked_window.append(convert_to_dict(grouped[n_w]))
     
-    print("linked_window: " + str(linked_window))
-    print("linked_window size: " + str(len(linked_window)))
+    # print("linked_window: " + str(linked_window))
+    # print("linked_window size: " + str(len(linked_window)))
     return linked_window
 
 

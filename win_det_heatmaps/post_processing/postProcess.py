@@ -86,23 +86,23 @@ class PostProcess():
 
         # apply non-maxima suppression to the rectangles
         pick, resScores = self.non_max_suppression_fast(np.array(boxes_tuples), overlapThresh, res_scores_all, flag)
-        print("[INFO] {} matched locations *after* NMS".format(len(pick)))
+        # print("[INFO] {} matched locations *after* NMS".format(len(pick)))
         # loop over the final bounding boxes
-        print(pick)
+        # print(pick)
         for (sX, sY, eX, eY) in pick:
             # draw the bounding box on the image
             cv2.rectangle(self.img_copy_new, (sX, sY), (eX, eY),
                 (255, 0, 0), 3)
-        plt.figure(num = 'nms')
-        plt.imshow(self.img_copy_new)
-        plt.title("Image After Local NMS")
-        plt.show()
+        # plt.figure(num = 'nms')
+        # plt.imshow(self.img_copy_new)
+        # plt.title("Image After Local NMS")
+        # plt.show()
         return pick, resScores
     
     def matchTemplate(self, coordinates, fileName, padding=10):    
 
         startX, endX, startY, endY = self.calculateRange(coordinates, padding)
-        plt.imshow(self.img_rgb)
+        # plt.imshow(self.img_rgb)
         # print(startX, endX, startY, endY)
         #print(img_rgb.shape)
         
@@ -110,7 +110,7 @@ class PostProcess():
         searchImg = self.img_rgb[startY:endY, : ,:]
         searchImg_copy = np.copy(searchImg)
 
-        self.template_plot(template,searchImg,fileName,fileName)
+        # self.template_plot(template,searchImg,fileName,fileName)
         
         img_gray = cv2.cvtColor(self.img_rgb, cv2.COLOR_BGR2GRAY)   
         searchImg_gray = cv2.cvtColor(searchImg, cv2.COLOR_BGR2GRAY)
@@ -119,26 +119,26 @@ class PostProcess():
         res_scores = []
         for i in [-2.5, 0, 2.5]:
 
-            ## DEBUG ##
-            plt.figure(num= 'DEBUG!!')
-            plt.imshow(searchImg)  
-            plt.title('dEBUG search Image')
-            plt.show()
+            # ## DEBUG ##
+            # plt.figure(num= 'DEBUG!!')
+            # plt.imshow(searchImg)  
+            # plt.title('dEBUG search Image')
+            # plt.show()
             
             # Apply rotation and shear to template
             rotatedTemplate = imutils.rotate(template, i)
-            plt.imshow(rotatedTemplate)
-            plt.title('rotatedTemplate_' + str(fileName)) 
-            plt.show()
+            # plt.imshow(rotatedTemplate)
+            # plt.title('rotatedTemplate_' + str(fileName)) 
+            # plt.show()
             
             template_gray = cv2.cvtColor(rotatedTemplate, cv2.COLOR_BGR2GRAY)   
 
             # Store width in variable w and height in variable h of template  
             tW, tH = template_gray.shape[::-1]   
             # Now we perform match operations.   
-            res = cv2.matchTemplate(searchImg_gray,template_gray,cv2.TM_CCOEFF_NORMED, 10)   
+            res = cv2.matchTemplate(searchImg_gray,template_gray,cv2.TM_CCOEFF_NORMED)   
             # Declare a threshold   
-            threshold = 0.550
+            threshold = 0.65
             # Store the coordinates of matched region in a numpy array   
             loc = np.where( res >= threshold)
             logging.debug(loc)
@@ -150,10 +150,10 @@ class PostProcess():
                 res_scores.append(res[pt[1]][pt[0]])
 
         # Now display the final matched template image
-        plt.figure(num= 'SearchImage')
-        plt.imshow(searchImg_copy)  
-        plt.title('Result on search Image')
-        plt.show()
+        # plt.figure(num= 'SearchImage')
+        # plt.imshow(searchImg_copy)  
+        # plt.title('Result on search Image')
+        # plt.show()
 
         #cv2.imwrite('Template_' +  '0.6_threshold_' + fileName, template)
         #cv2.imwrite('TemplateMatched_'  + '0.6_threshold_' + fileName, searchImg)
@@ -169,15 +169,15 @@ class PostProcess():
             cv2.rectangle(self.img_show, (pt[0],pt[1]),  (pt[2], pt[3]), (255,0,0), 1)   
         
         # Now display the final matched template image   
-        plt.figure(num = 'mapped' + fileName, figsize=(20,10))
-        plt.imshow(self.img_show)  
-        plt.title('Image - All Template Matching Result')
+        # plt.figure(num = 'mapped' + fileName, figsize=(20,10))
+        # plt.imshow(self.img_show)  
+        # plt.title('Image - All Template Matching Result')
         
         coord = (coordinates[0][0],coordinates[0][1],coordinates[2][0],coordinates[2][1])
         mapped_new = mappedCoords + [coord]
         res_scores_new = res_scores + [10.0]
         
-        mappedrects_picked, res_scores_picked = self.nms_local(mapped_new, res_scores_new, 1)
+        mappedrects_picked, res_scores_picked = self.nms_local(mapped_new, res_scores_new, 1, 0.25)
         
         return mappedrects_picked, res_scores_picked
 
@@ -217,7 +217,7 @@ class PostProcess():
             # index value to the list of picked indexes
             last = len(idxs) - 1
             i = idxs[last]
-            print('last box', boxes[i])
+            # print('last box', boxes[i])
             pick.append(i)
             # find the largest (x, y) coordinates for the start of
             # the bounding box and the smallest (x, y) coordinates
@@ -255,9 +255,9 @@ class PostProcess():
         yTop = coords[:,1]
         yBottom = coords[:,3]
         yAvg = (yTop + yBottom)/2
-        print(yTop)
-        print(yBottom)
-        print(yAvg)
+        # print(yTop)
+        # print(yBottom)
+        # print(yAvg)
         storeyCount = 1 if len(coords) > 0 else 0
         index = 0
         for i in range(len(coords)):
@@ -295,7 +295,7 @@ class PostProcess():
         res_scores_picked_list = np.array(res_scores_picked_list)
 
         for ind in range(self.mappedInputArr.shape[0]):
-            mappedrects_picked, res_scores_picked = self.matchTemplate(self.mappedInputArr[ind], ' ', padding=10)
+            mappedrects_picked, res_scores_picked = self.matchTemplate(self.mappedInputArr[ind], ' ',  padding = 15)
             if ind == 0:
                 mappedrects_picked_list = mappedrects_picked
                 #res_scores_picked_list = np.expand_dims(res_scores_picked,0)
@@ -304,8 +304,8 @@ class PostProcess():
                 mappedrects_picked_list = np.vstack((mappedrects_picked, mappedrects_picked_list))
                 res_scores_picked_list = np.hstack((res_scores_picked, res_scores_picked_list))
 
-            print('mappedrects_picked',mappedrects_picked_list)
-            print('res_scores_picked', res_scores_picked_list)
+            # print('mappedrects_picked',mappedrects_picked_list)
+            # print('res_scores_picked', res_scores_picked_list)
             
         #---------NMS after TM of all model-detected windows----------
 
@@ -316,10 +316,10 @@ class PostProcess():
         boxes = np.array(mappedrects_picked_list)
         res_scores_all = np.array(res_scores_picked_list)
 
-        print(boxes)
-        print(res_scores_all)
-        print(boxes.shape)
-        print(res_scores_all.shape)
+        # print(boxes)
+        # print(res_scores_all)
+        # print(boxes.shape)
+        # print(res_scores_all.shape)
 
         xCoords = boxes[:,0]
         yCoords = boxes[:,1]
@@ -340,13 +340,14 @@ class PostProcess():
         print("[INFO] {} matched locations *after* NMS".format(len(pick)))
         # loop over the final bounding boxes
         logging.info('final Bounding boxes after PostProcess: %s', (pick))
+        print(type(pick))
         for (sX, sY, eX, eY) in pick:
             # draw the bounding box on the image
             cv2.rectangle(self.img_copy, (sX, sY), (eX, eY),
                 (255, 0, 0), 3)
-        plt.figure(num = 'nms')
-        plt.imshow(self.img_copy)
-        plt.title("After NMS")
+        # plt.figure(num = 'nms')
+        # plt.imshow(self.img_copy)
+        # plt.title("After NMS")
 
         cv2.imwrite('postProcess.png', self.img_copy)
         self.window_count = len(pick)
@@ -360,5 +361,6 @@ class PostProcess():
         plt.text(600, 650, "No. of storeys: " + str(self.storey_count), color="blue", fontdict={"fontsize":10, "fontweight":'bold', "ha":"left", "va":"baseline"})
         #Display the image
         plt.show()
+        return pick
 
 

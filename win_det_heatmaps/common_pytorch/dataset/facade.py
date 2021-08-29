@@ -303,4 +303,5 @@ class facade(IMDB):
 
             visFilename = "vis_" + os.path.basename(im)
             visFilename = os.path.join(save_path, visFilename)
-            vis_eval_result(im, winPred, plotLine=True, saveFilename=visFilename)
+            imdb_list[s_idx]['image'] = vis_eval_result(im, winPred, plotLine=True, saveFilename=visFilename)
+        return imdb_list
