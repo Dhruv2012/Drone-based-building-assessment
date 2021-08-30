@@ -9,7 +9,7 @@ import logging
 logging.basicConfig(filename='postProcess.log', format='%(levelname)s: %(message)s',  level=logging.INFO)
 
 class PostProcess():
-    def __init__(self, img, group_corners_wz_score):
+    def __init__(self, img, group_corners_wz_score, final_output_path):
         logging.info('Running postProcessing module')
         self.img = img
         ## Create copies of image for plotting purpose.
@@ -21,7 +21,7 @@ class PostProcess():
         self.mapInputForPostProcessing(group_corners_wz_score)
         self.window_count = 0
         self.storey_count = 0
-
+        self.final_output_path = final_output_path
     def mapInputForPostProcessing(self, group_corners_wz_score):
         mappedInput = []
         for window in group_corners_wz_score:
@@ -348,8 +348,8 @@ class PostProcess():
         # plt.figure(num = 'nms')
         # plt.imshow(self.img_copy)
         # plt.title("After NMS")
-
-        cv2.imwrite('postProcess.png', self.img_copy)
+        print('final OP:', self.final_output_path)
+        cv2.imwrite(self.final_output_path,  self.img_copy)
         self.window_count = len(pick)
         logging.info('Number of windows detected by the model and post processing: %s', self.window_count)
         self.calculateStoreys(pick)

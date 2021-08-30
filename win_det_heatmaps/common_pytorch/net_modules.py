@@ -228,25 +228,31 @@ def inferNet(infer_data_loader, network, merge_hm_flip_func, merge_tag_flip_func
     # print("windows list:")
     # print(windows_list_with_score)
     imdb_list_1 = facade.plot(windows_list_with_score, imdb_list, final_output_path)
+    infer_result_path = os.path.dirname(final_output_path)
+    print(infer_result_path)
+    postProcessOutputPath = infer_result_path + '\post_process_result'
+    if not os.path.exists(postProcessOutputPath):
+        os.makedirs(postProcessOutputPath)
     # print('DEBUG INPUT PP:', imdb_list)
     # print(type(imdb_list))
 
     recordedCoordsOfEntireSeq = []
     for n_s in range(num_samples):
-        # print("#######" + str(imdb_list[n_s]['image']) + "#########")
         group_corners_wz_score = windows_list_with_score[n_s]
         print('windowScores: ' + str(group_corners_wz_score))
         print("windowCount: " + str(len(group_corners_wz_score)))
         print(mapInputForPostProcessing(group_corners_wz_score))
-        postProcess = PostProcess(imdb_list_1[n_s]['image'], group_corners_wz_score)
+        fileName = str(n_s) + '.png'
+        final_postProcess_path = os.path.join(postProcessOutputPath, fileName) 
+        print(final_postProcess_path)
+        postProcess = PostProcess(imdb_list_1[n_s]['image'], group_corners_wz_score, final_postProcess_path)
         boundingBoxes = postProcess.runPostProcessingModule()
         print(boundingBoxes.shape)
         recordedCoordsOfEntireSeq.append(boundingBoxes)
     print(recordedCoordsOfEntireSeq)
 
-    with open('coordinatesFromPostProcessing-5.csv', 'ab') as f:
+    with open('coordinatesFromPostProcessing-1-shufflenet.csv', 'ab') as f:
         for array in recordedCoordsOfEntireSeq:
             array = array.ravel()
             array = array.reshape(-1, array.shape[0])
             np.savetxt(f, array, delimiter=',')
-    # np.savetxt("coordinatesFromPostProcessing-1.csv", np.array(recordedCoordsOfEntireSeq), delimiter=',') 
