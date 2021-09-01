@@ -14,6 +14,7 @@ from .imdb import IMDB
 from common.utility.visualization import debug_vis, vis_eval_result, vis_eval_result_with_gt
 from common.utility.utils import float2int
 from .evaluation import getAp
+import copy
 
 num_corners = 4
 max_num_windows = 100
@@ -288,9 +289,10 @@ class facade(IMDB):
     @staticmethod
     def plot(windows_list, imdb_list, save_path):
         # pre-processing
+        imdb_list_copy = copy.deepcopy(imdb_list)
         ap_pred = []
         for s_idx in range(len(windows_list)):
-            im = imdb_list[s_idx]['image']
+            im = imdb_list_copy[s_idx]['image']
 
             # aggreate pred into list
             winPred = windows_list[s_idx]
@@ -303,5 +305,5 @@ class facade(IMDB):
 
             visFilename = "vis_" + os.path.basename(im)
             visFilename = os.path.join(save_path, visFilename)
-            imdb_list[s_idx]['image'] = vis_eval_result(im, winPred, plotLine=True, saveFilename=visFilename)
-        return imdb_list
+            imdb_list_copy[s_idx]['image'] = vis_eval_result(im, winPred, plotLine=True, saveFilename=visFilename)
+        return imdb_list_copy
