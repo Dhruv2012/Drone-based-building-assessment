@@ -149,22 +149,26 @@ class CalculateTotalParams():
         index = 0
         heightOfPlane = self.verticalPlane.shape[0]
         storeyHeights = [heightOfPlane - yAvg[0]] if len(coords) > 0 else []
-        
+            
         for i in range(len(coords)):
-            if ((yAvg[index] > yTop[i]) and (yAvg[index] < yBottom[i])):
+            if (((yAvg[index] > yTop[i]) and (yAvg[index] < yBottom[i])) or 
+                ((yTop[index] > yTop[i]) and (yTop[index] < yBottom[i]))  or
+                ((yBottom[index] > yTop[i]) and (yBottom[index] < yBottom[i]))):
                 continue
             else:
                 index = i
                 storeyCounted = False
-                for j in range(i):
-                    if ((yAvg[index] > yTop[j]) and (yAvg[index] < yBottom[j])):
+                for j in range(i):  
+                    if (((yAvg[index] > yTop[j]) and (yAvg[index] < yBottom[j])) or 
+                        ((yTop[index] > yTop[j]) and (yTop[index] < yBottom[j])) or
+                        ((yBottom[index] > yTop[j]) and (yBottom[index] < yBottom[j]))):
                         storeyCounted = True
                         break
                 if(storeyCounted == False):
                     storeyHeights.append(heightOfPlane - yAvg[index])
                     storeyCount+=1
         print('StoreyCount after running post processing module: ', storeyCount)
-        print("storeyHeights are:", storeyHeights)
+        print('StoreyHeights are: ', storeyHeights)
         return storeyCount, storeyHeights
 
     def plotBoxes(self, verticalPlane, boxes):
