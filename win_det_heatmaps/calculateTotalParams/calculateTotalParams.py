@@ -5,9 +5,10 @@ import imageio
 import imutils
 from imutils import paths
 from matplotlib import pyplot
+import csv
 
 class CalculateTotalParams():
-    def __init__(self, recordedCoordsOfEntireSeq, height_info, imgShape = (720,960,3), focalLength = 920, depth = 700, 
+    def __init__(self, recordedCoordsOfEntireSeq, height_info, loadFilePath = None, imgShape = (720,960,3), focalLength = 920, depth = 700, 
         nmsThresh = 0, verticalPlaneShape = (1500, 1000, 3)):
         
         self.verticalPlane = np.zeros(verticalPlaneShape, np.uint8)
@@ -17,6 +18,7 @@ class CalculateTotalParams():
         self.depth = 700 # in cm
         self.nmsThresh = 0
         self.recordedCoordsOfEntireSeq = recordedCoordsOfEntireSeq ## in form of list of [[[sx,sy,ex,ey]]]
+        self.loadFilePath = loadFilePath
 
     def calculateRange(self, coordinates, padding):
         minX = maxX = coordinates[0][0]
@@ -52,6 +54,41 @@ class CalculateTotalParams():
             endY = maxY + padding
         return startX, endX, startY, endY
 
+    def loadCoordsFromCSV(self, filePath):
+        with open(filePath, newline='') as f:
+            csvread = csv.reader(f)
+            # print(csvread)
+            batch_data = list(csvread)
+
+        batch_data_int = []
+        for inner_list in batch_data:
+            innet_out_list = []
+            for string in inner_list:
+                innet_out_list.append(int(float(string)))
+            batch_data_int.append(innet_out_list)
+
+        finalListMappedWithAll4Coords = []
+        for i in range(len(batch_data_int)):
+            el = batch_data_int[i]
+            elChunks = [el[x:x+4] for x in range(0, len(el), 4)]
+            newElChunks = elChunks.copy()
+            for i in range(len(elChunks)):
+                chunk = elChunks[i]
+                newChunk = chunk.copy()
+
+                newChunk.insert(2, chunk[0])
+                newChunk.insert(3, chunk[3])
+                newChunk.insert(6, chunk[2])
+                newChunk.insert(7, chunk[1])
+                newElChunks[i] = newChunk
+            perImageCoords = np.array(newElChunks)
+            perImageCoords = perImageCoords.reshape(-1,4,2)
+            finalListMappedWithAll4Coords.append(perImageCoords)
+
+        # print("Final list:", finalListMappedWithAll4Coords)
+        # print("Final list size:", len(finalListMappedWithAll4Coords))
+        return finalListMappedWithAll4Coords
+
     def mapToAll4Coords(self, input):
         ## Here input is in form of list of sX, sY, eX, eY
         ## Eg: input = [arr([[s1,s2, e1,e2], [s1, s2, e1, e2]]),   arr([[s3,s4,e3,e4],[s3,s4,e3,e4]])]
@@ -80,13 +117,13 @@ class CalculateTotalParams():
         h, w, c = self.imgShape
         for box in boundingBoxes:
             sX, sY, eX, eY = box
-            print(box)
+            # print(box)
             
             sY = h/2 - sY
             eY = h/2 - eY
             mappedSX, mappedSY, mappedEX, mappedEY = sX, int(heightOfPlane - ((sY*self.depth/self.focalLength) + height)), eX, int(heightOfPlane - ((eY*self.depth/self.focalLength) + height))
             
-            print("mapped:" + str(mappedSX) + " " +  str(mappedSY)  + " " + str(mappedEX) + " " + str(mappedEY))
+            # print("mapped:" + str(mappedSX) + " " +  str(mappedSY)  + " " + str(mappedEX) + " " + str(mappedEY))
             cv2.rectangle(verticalPlane, (mappedSX, mappedSY), (mappedEX, mappedEY), (255, 255, 255), 4)
             
             mappedBoundingBoxes.append((mappedSX, mappedSY, mappedEX, mappedEY))
@@ -171,7 +208,7 @@ class CalculateTotalParams():
         print('StoreyHeights are: ', storeyHeights)
         return storeyCount, storeyHeights
 
-    def plotBoxes(self, verticalPlane, boxes):
+    def plotBoxes(self, verticalPlane, boxes, title):
         for box in boxes:
             sX, sY, eX, eY = box
             cv2.rectangle(verticalPlane, (sX, sY), (eX, eY), (255, 255, 255), 4)
@@ -181,6 +218,7 @@ class CalculateTotalParams():
         ax1.set_xlabel("PLANE", fontsize=14)
         # plt.imshow(verticalPlane)
         # plt.tight_layout()
+        plt.title(title)
         plt.show()
         return verticalPlane
 
@@ -193,7 +231,13 @@ class CalculateTotalParams():
 
     def runCalculateTotalParamsModule(self):
         verticalPlaneCopy = np.copy(self.verticalPlane)
-        FinalList = self.mapToAll4Coords(self.recordedCoordsOfEntireSeq)
+
+        if self.loadFilePath == None:
+            FinalList = self.mapToAll4Coords(self.recordedCoordsOfEntireSeq)
+        else:
+            ## Load from CSV File
+            FinalList = self.loadCoordsFromCSV(self.loadFilePath)
+
         allMappedBoxes = []
         for i in range(len(FinalList)):
             ## MAIN LOOP ##
@@ -212,13 +256,13 @@ class CalculateTotalParams():
             
         ## NMS
         print("before NMS:", np.array(allMappedBoxes))
-        self.plotBoxes(np.copy(self.verticalPlane), allMappedBoxes)
+        self.plotBoxes(np.copy(self.verticalPlane), allMappedBoxes, "Before NMS")
         print(np.array(allMappedBoxes).shape)
 
         finalBoxes = self.non_max_suppression_fast(np.array(allMappedBoxes))
         print("after NMS:", finalBoxes)
         print(finalBoxes.shape)
-        finalMappedPlane = self.plotBoxes(np.copy(self.verticalPlane), finalBoxes)
+        finalMappedPlane = self.plotBoxes(np.copy(self.verticalPlane), finalBoxes, "After NMS(Final Mapped Plane)")
         print("Total no. of windows in seq: " + str(finalBoxes.shape[0]))
         storeyCount, storeyHeights = self.calculateStoreys(finalBoxes)
 

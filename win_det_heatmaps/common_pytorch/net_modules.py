@@ -205,7 +205,7 @@ def inferNet(infer_data_loader, network, merge_hm_flip_func, merge_tag_flip_func
 
     ### PostProcess Path ###
     infer_result_path = os.path.dirname(final_output_path)
-    print(infer_result_path)
+    # print(infer_result_path)
     postProcessOutputPath = infer_result_path + '\post_process_result'
     if not os.path.exists(postProcessOutputPath):
         os.makedirs(postProcessOutputPath)
@@ -214,8 +214,6 @@ def inferNet(infer_data_loader, network, merge_hm_flip_func, merge_tag_flip_func
     ############################ Group corners on TAG ##############################
     # 1. Group Corners
     parser = HeatmapParser(loss_config, test_config.useCenter, test_config.centerT, imdb_list)
-    # print('imdb list[2]:')
-    # print(imdb_list[2])
 
     ## Final Recorded coords of bounding boxes 
     recordedCoordsOfEntireSeq = []
@@ -226,17 +224,21 @@ def inferNet(infer_data_loader, network, merge_hm_flip_func, merge_tag_flip_func
                 group_corners_on_tags(n_s, parser, heatmaps[n_s], tagmaps[n_s], patch_width, patch_height,
                                       imdb_list[n_s]['im_width'], imdb_list[n_s]['im_height'],
                                       rectify = test_config.rectify, winScoreThres = test_config.windowT)
-            # print('windowScores: ' + str(group_corners_wz_score))
+            print('windowScores: ' + str(group_corners_wz_score))
             windows_list_with_score.append(group_corners_wz_score)
+            print('imgPaths:', imdb_list[n_s]['image'])
             inputImg = cv2.imread(imdb_list[n_s]['image'], 1)
             modelInferredImg = facade.plotSingleImage(inputImg, 
                 group_corners_wz_score,  final_output_path, n_s)
 
             final_postProcess_path = os.path.join(postProcessOutputPath, str(n_s) + '.png') 
-            print(final_postProcess_path)
-            postProcess = PostProcess(modelInferredImg, group_corners_wz_score, final_postProcess_path)
-            boundingBoxes = postProcess.runPostProcessingModule()
-            print(boundingBoxes.shape)
+            print('group_corners_wz_score:', group_corners_wz_score)
+            print(type(group_corners_wz_score))
+            boundingBoxes = np.empty(shape=(1,4),dtype='object')
+            boundingBoxes[:] = np.nan
+            if group_corners_wz_score:
+                postProcess = PostProcess(modelInferredImg, group_corners_wz_score, final_postProcess_path)
+                boundingBoxes = postProcess.runPostProcessingModule()
             recordedCoordsOfEntireSeq.append(boundingBoxes)
 
             # print("windowCount: " + str(len(group_corners_wz_score)))
@@ -268,14 +270,15 @@ def inferNet(infer_data_loader, network, merge_hm_flip_func, merge_tag_flip_func
     #     print(boundingBoxes.shape)
     #     recordedCoordsOfEntireSeq.append(boundingBoxes)
 
-    print(recordedCoordsOfEntireSeq)
+    print("recordedCoordsOfEntireSeq: ", recordedCoordsOfEntireSeq)
     ## Height info of sequence in cm
-    height_info = [60, 110, 230, 330, 380, 420, 450, 480, 510, 530, 560, 580, 590, 600, 610, 670, 750, 780, 800, 850, 910, 950, 1000]
-    calculateTotalParams = CalculateTotalParams(recordedCoordsOfEntireSeq, height_info)
-    calculateTotalParams.runCalculateTotalParamsModule()
+    # height_info = [160, 240, 330, 500, 580, 660, 730, 740, 910]
+    # calculateTotalParams = CalculateTotalParams(recordedCoordsOfEntireSeq, height_info, 
+    #     loadFilePath = "F:\\IIIT-H Work\\win_det_heatmaps\\rrcServerData\\win_det_heatmaps\\coordinatesFromPostProcessing-1-shufflenet.csv")
+    # calculateTotalParams.runCalculateTotalParamsModule()
     
-    # with open('coordinatesFromPostProcessing-1-shufflenet.csv', 'ab') as f:
-    #     for array in recordedCoordsOfEntireSeq:
-    #         array = array.ravel()
-    #         array = array.reshape(-1, array.shape[0])
-    #         np.savetxt(f, array, delimiter=',')
+    with open('coordinatesFromPostProcessing-2_new-shufflenet.csv', 'ab') as f:
+        for array in recordedCoordsOfEntireSeq:
+            array = array.ravel()
+            array = array.reshape(-1, array.shape[0])
+            np.savetxt(f, array, delimiter=',')
