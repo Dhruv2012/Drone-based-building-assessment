@@ -17,8 +17,80 @@ def display_inlier_outlier( cloud , ind ):
                                       lookat=[2.6172, 2.0475, 1.532],
                                       up=[-0.0694, -0.9768, 0.2024])
 
+def calculateTotalHeight(cloud, ind):
+    inlier_cloud = cloud.select_by_index( ind ) 
+    inlierPts = np.array(inlier_cloud.points)
+    print(inlierPts.shape)
+
+    maxHeightIndices = np.where(inlierPts[:, 1] == np.amax(inlierPts[:,1]))
+    print('maxHeightIndices: ', maxHeightIndices)
+    print('maxHeightIndicesDim: ', np.ndim(maxHeightIndices))
+    maxHeightX = 0.0
+    maxHeightY = 0.0
+    maxHeightZ = 0.0
+
+    for i in range(np.ndim(maxHeightIndices) - 1):
+        print('maxHeightPt:', inlierPts[maxHeightIndices[i], :])
+        maxHeightX = inlierPts[maxHeightIndices[i], 0]
+        maxHeightY = inlierPts[maxHeightIndices[i], 1]
+        maxHeightZ = inlierPts[maxHeightIndices[i], 2]
+    minHeightIndices = np.where(inlierPts[:, 1] == np.amin(inlierPts[:,1])) 
+    print('minHeightIndices: ', minHeightIndices)
+    print('minHeightIndicesDim: ', np.ndim(minHeightIndices))
+    minHeightX = inlierPts[minHeightIndices[0], 0]
+    minHeightY = inlierPts[minHeightIndices[0], 1]
+    minHeightZ = inlierPts[minHeightIndices[0], 2]
+
+    # for i in range(np.ndim(minHeightIndices) - 1):
+    #     print(inlierPts[minHeightIndices[i], :])
+    #     if (((inlierPts[:,0] < maxHeightX + 0.01) and (inlierPts[:,0] > maxHeightX - 0.01)) and
+    #         ((inlierPts[:,2] < maxHeightZ + 0.01) and (inlierPts[:,2] > maxHeightZ - 0.01))):
+    #         minHeightX = inlierPts[minHeightIndices[i], 0]
+    #         minHeightY = inlierPts[minHeightIndices[i], 1]
+    #         minHeightZ = inlierPts[minHeightIndices[i], 2]
+    print('minHeightX: ' + str(minHeightX) + ' minHeightY: ' + str(minHeightY) + ' minHeightZ: ' + str(minHeightZ))
+    print('maxHeightX: ' + str(maxHeightX) + ' maxHeightY: ' + str(maxHeightY) + ' maxHeightZ: ' + str(maxHeightZ))
+    print('Height in SFM scale is: ' + str(maxHeightY - minHeightY))
+    return maxHeightY - minHeightY
+
 def displayPointsOnPlane( cloud , ind ): 
     inlier_cloud = cloud.select_by_index( ind ) 
+    
+    # inlierPts = np.array(cloud.points)
+    # print(inlierPts.shape)
+    # maxDepthIndices = np.where(inlierPts[:, 2] == np.amax(inlierPts[:,2]))
+    # print('maxDepthIndices: ', maxDepthIndices)
+    # print('maxDepthIndicesDim: ', np.ndim(maxDepthIndices))
+    # for i in range(np.ndim(maxDepthIndices) - 1):
+    #     print(inlierPts[maxDepthIndices[i], :])
+
+    # maxHeightIndices = np.where(inlierPts[:, 1] == np.amax(inlierPts[:,1]))
+    # print('maxHeightIndices: ', maxHeightIndices)
+    # print('maxHeightIndicesDim: ', np.ndim(maxHeightIndices))
+    # maxHeightX = 0.0
+    # maxHeightY = 0.0
+    # maxHeightZ = 0.0
+
+    # for i in range(np.ndim(maxHeightIndices) - 1):
+    #     print(inlierPts[maxHeightIndices[i], :])
+    #     maxHeightX = inlierPts[maxHeightIndices[i], 0]
+    #     maxHeightY = inlierPts[maxHeightIndices[i], 1]
+    #     maxHeightZ = inlierPts[maxHeightIndices[i], 2]
+    # minHeightIndices = np.where(inlierPts[:, 1] == np.amin(inlierPts[:,1])) 
+    # minHeightX = 0.0
+    # minHeightY = 0.0
+    # minHeightZ = 0.0
+
+    # for i in range(np.ndim(minHeightIndices) - 1):
+    #     print(inlierPts[minHeightIndices[i], :])
+    #     if (((inlierPts[:,0] < maxHeightX + 0.01) and (inlierPts[:,0] > maxHeightX - 0.01)) and
+    #         ((inlierPts[:,2] < maxHeightZ + 0.01) and (inlierPts[:,2] > maxHeightZ - 0.01))):
+    #         minHeightX = inlierPts[minHeightIndices[i], 0]
+    #         minHeightY = inlierPts[minHeightIndices[i], 1]
+    #         minHeightZ = inlierPts[minHeightIndices[i], 2]
+    # print('minHeightX: ' + str(minHeightX) + ' minHeightY: ' + str(minHeightY) + ' minHeightZ: ' + str(minHeightZ))
+    # print('maxHeightX: ' + str(maxHeightX) + ' maxHeightY: ' + str(maxHeightY) + ' maxHeightZ: ' + str(maxHeightZ))
+
     outlier_cloud = cloud.select_by_index( ind , invert = True ) # Set to True to save points other than ind
     print("Showing plane points (red) and other (black): ") 
     outlier_cloud.paint_uniform_color([0, 0, 0])
@@ -88,6 +160,7 @@ def main():
         #    print(distance)
 
     # Visualize plane points
+    calculateTotalHeight(cloud, pointsOnPlaneIndexes)
     displayPointsOnPlane(cloud, pointsOnPlaneIndexes)
 
 
