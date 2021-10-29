@@ -1,0 +1,15 @@
+<!DOCTYPE MeshLabDocument>
+<MeshLabProject>
+ <MeshGroup>
+  <MLMesh label="fused.ply" filename="fused.ply" visible="1">
+   <MLMatrix44>
+1 0 0 0 
+0 1 0 0 
+0 0 1 0 
+0 0 0 1 
+</MLMatrix44>
+   <RenderingOption pointColor="131 149 69 255" boxColor="234 234 234 255" wireWidth="1" wireColor="64 64 64 255" pointSize="3" solidColor="192 192 192 255">000111010000000000000000000001000000000010100000000100111010110000001101</RenderingOption>
+  </MLMesh>
+ </MeshGroup>
+ <RasterGroup/>
+</MeshLabProject>
