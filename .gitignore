@@ -2,3 +2,4 @@
 **/models
 **/results
 **/Ensemble
+**/*.pth
