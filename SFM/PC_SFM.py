@@ -93,9 +93,25 @@ def displayPointsOnPlane( cloud , ind ):
 
     outlier_cloud = cloud.select_by_index( ind , invert = True ) # Set to True to save points other than ind
     print("Showing plane points (red) and other (black): ") 
-    outlier_cloud.paint_uniform_color([0, 0, 0])
-    inlier_cloud.paint_uniform_color([1,0,0]) 
+    outlier_cloud.paint_uniform_color([0, 1, 0])
+    inlier_cloud.paint_uniform_color([1,0,0])
+
+    '''
     o3d.visualization.draw_geometries([ inlier_cloud , outlier_cloud ],
+                                    width=1080, height=760, zoom=0.1412,
+                                    front=[0.4257, -0.2125, -0.8795],
+                                    lookat=[2.6172, 2.0475, 1.532],
+                                    up=[-0.0694, -0.9768, 0.2024])
+    '''
+
+    dummyInd = [131, 376, 378, 3932, 3948, 4137, 4041, 1464, 976, 1534, 809, 261, 3231]
+    dummy_cloud = cloud.select_by_index(dummyInd)
+    print('dummyCloud points:' + str(np.array(dummy_cloud.points).shape[0]))
+    for ind in dummyInd:
+        print('dummyInd: ' + str(ind) + ' point-> ' +  str(np.array(cloud.points)[ind]))
+    dummy_cloud.paint_uniform_color([0,0,0])
+
+    o3d.visualization.draw_geometries([ outlier_cloud, dummy_cloud ],
                                       width=1080, height=760, zoom=0.1412,
                                       front=[0.4257, -0.2125, -0.8795],
                                       lookat=[2.6172, 2.0475, 1.532],
@@ -117,7 +133,7 @@ def PCA(cloud):
 def main():
 
     # Visualize SFM point cloud
-    cloud = o3d.io.read_point_cloud("fused.ply") # Read the point cloud
+    cloud = o3d.io.read_point_cloud(".\\bakul_front_face\\COLMAP001\\sparse\\0\\sparse.ply") # Read the point cloud
     print("Original Point cloud : Data points : ", cloud)
     #o3d.visualization.draw_geometries([cloud], window_name='Original Cloud', 
     #                                  width=1080, height=760, zoom=0.1412,
@@ -125,6 +141,13 @@ def main():
     #                                  lookat=[2.6172, 2.0475, 1.532],
     #                                  up=[-0.0694, -0.9768, 0.2024]) # Visualize the point cloud     
 
+    print('Total Points:', np.array(cloud.points).shape)
+    '''
+    dummyInd = np.where(np.array(cloud.points) == -0.60864780704680455)
+    print('dummyInd:', dummyInd)
+    print('dummyInd: 1= ' +  str(dummyInd[0]) + ' 2= '  + str(dummyInd[1]))
+    print('dummyInd:', len(dummyInd))
+    '''
     # Downsampling for outlier removal
     cl, ind = cloud.remove_statistical_outlier(nb_neighbors=100, std_ratio=0.1)
     #display_inlier_outlier(cloud, ind)
