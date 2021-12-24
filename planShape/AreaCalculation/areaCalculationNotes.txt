@@ -1,0 +1,129 @@
+-> Various preprocessing techniques such as histogram flattening
+-> Tried undistortion for rectification.
+	Using DL-based Deep Calib
+	Using camera undistortion
+		Both preprocessed and undistorted outputs are decent -  but depends on image
+
+
+PER PIXEL Threshold
+
+Try Left right flips and rotation -> 90, 180, 270 . pass into model and undo rotation. Stack the rotated outputs. Then do pooling(max or avg) and get final output. 
+
+Add padding(border pixels) for images with lower heights(For undistortion)
+
+Pooling - 1, 1, 1, 1, 1, 1, 1, 
+UndistortedPreprocessed - 1, 1, 1, 1, 1, 
+
+
+UndistortedPreprocessed and Max Pooling perform better when buildings are taken at lower heights
+Lower threshold helps in zoomed images(or lower heights)
+But it also sometimes fill up the in-between parts of the building.
+
+Seq11 is extracted
+
+OPEN TO SKY BOXES NOT REMOVED
+GoogleEarth
+4155 meter^2 outer box area Nilgiri
+3935.52 meter^2 outer polygon fitted on Nilgiri
+OpenToSky1 = 336.36
+OpentoSky2 = 241.07
+OpenToSky3 = 230.49
+TotalOpenToSky = 807.92
+Net Nilgiri = 3935.52- 807.92 = 3,127.6
+
+Calculated
+AvgEntireBox = 4,569.5
+
+On Undistorted and preprocessed
+Final Outer Polygon Area(Img3): 4415.929313384785
+Final Outer Polygon Area(Img4): 4311.149869632526
+Final Outer Polygon Area(Img5): 4235.086652981875
+Avg = 4,320.721945333062
+
+On Undistorted, Preprocessed and AvgPooling
+Final Outer Polygon Area(Img3): 4512.0390873712
+Final Outer Polygon Area(Img4): 4486.250605759461
+Final Outer Polygon Area(Img5): 4379.986318202509
+Avg = 4,459.425337111057
+
+5.jpg
+hierarchy of child: [ 4 -1 -1  2]
+childPolygonArea:  9.123588487391954
+child Total area in loop: 9.123588487391954
+hierarchy of child: [ 5  3 -1  2]
+childPolygonArea:  195.9803740561292
+child Total area in loop: 205.10396254352113
+hierarchy of child: [-1  4 -1  2]
+childPolygonArea:  209.331272653904
+child Total area in loop: 414.43523519742513
+outerPolygon Area: 4379.986318202509
+child total Area: 414.43523519742513
+netArea: 3965.551083005084
+
+4.jpg
+hierarchy of child: [ 3 -1 -1  1]
+childPolygonArea:  224.09923961418951
+child Total area in loop: 224.09923961418951
+hierarchy of child: [-1  2 -1  1]
+childPolygonArea:  220.8187537115094
+child Total area in loop: 444.91799332569894
+outerPolygon Area: 4486.250605759461
+child total Area: 444.91799332569894
+netArea: 4041.332612433762
+
+3.jpg
+hierarchy of child: [ 2 -1 -1  0]
+childPolygonArea:  209.33867108994545
+child Total area in loop: 209.33867108994545
+hierarchy of child: [-1  1 -1  0]
+childPolygonArea:  214.34543534127098
+child Total area in loop: 423.68410643121643
+outerPolygon Area: 4512.0390873712
+child total Area: 423.68410643121643
+netArea: 4088.3549809399838
+
+RGB_Undist+Preprocessed
+3.jpg
+hierarchy of child: [ 4 -1 -1  2]
+childPolygonArea:  0.001861077688439939
+child Total area in loop: 0.001861077688439939
+hierarchy of child: [ 5  3 -1  2]
+childPolygonArea:  192.38239227056914
+child Total area in loop: 192.38425334825757
+hierarchy of child: [-1  4 -1  2]
+childPolygonArea:  280.60166212742126
+child Total area in loop: 472.98591547567884
+outerPolygon Area: 4415.929313384785
+child Total Area: 472.98591547567884
+netArea: 3942.9433979091064
+
+4.jpg
+hierarchy of child: [ 3 -1 -1  1]
+childPolygonArea:  202.5589250950001
+child Total area in loop: 202.5589250950001
+hierarchy of child: [-1  2 -1  1]
+childPolygonArea:  251.96465791901787
+child Total area in loop: 454.52358301401796
+outerPolygon Area: 4311.149869632526
+child Total Area: 454.52358301401796
+netArea: 3856.626286618508
+
+5.jpg
+hierarchy of child: [ 2 -1 -1  0]
+childPolygonArea:  2.84667347500529
+child Total area in loop: 2.84667347500529
+hierarchy of child: [ 3  1 -1  0]
+childPolygonArea:  218.46112382294098
+child Total area in loop: 221.30779729794628
+hierarchy of child: [-1  2 -1  0]
+childPolygonArea:  218.38426363911583
+child Total area in loop: 439.69206093706214
+outerPolygon Area: 4235.086652981875
+child Total Area: 439.69206093706214
+netArea: 3795.3945920448127
+
+
+17 Dec, 2021
+-> Do present seg model on google earth images
+-> check, analyze and train
+-> area calc for opentotsky1
