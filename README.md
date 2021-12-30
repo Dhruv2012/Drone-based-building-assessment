@@ -12,6 +12,10 @@ To identify salient structural elements in buildings from RGB images captured us
 #### Dataset:
 We have made our own custom dataset by capturing buildings on IIIT-H campus through a drone. In addition, we have also used the open-source zju_facade dataset to train our models.
 
+### Progress till now:
+Please find our current progress in the following presentation.
+[Presentation link](https://docs.google.com/presentation/d/1SGP0-3pb7mIS0CNtp-2dJ66QOJx7wwM2IqhtbE_4YXs/edit?usp=sharing)
+
 ### Project Team:
 Dhruv Patel - Project Associate, Robotics Research Centre(RRC), IIIT Hyderabad \
 Shivani Chepuri - MS Student, IIIT Hyderabad \
