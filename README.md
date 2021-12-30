@@ -14,7 +14,7 @@ We have made our own custom dataset by capturing buildings on IIIT-H campus thro
 
 ### Progress till now:
 Please find our current progress in the following presentation.
-[Presentation link](https://docs.google.com/presentation/d/1SGP0-3pb7mIS0CNtp-2dJ66QOJx7wwM2IqhtbE_4YXs/edit?usp=sharing)
+<a href="https://docs.google.com/presentation/d/1SGP0-3pb7mIS0CNtp-2dJ66QOJx7wwM2IqhtbE_4YXs/edit?usp=sharing" target="_blank">Presentation Link</a>
 
 ### Project Team:
 Dhruv Patel - Project Associate, Robotics Research Centre(RRC), IIIT Hyderabad \
