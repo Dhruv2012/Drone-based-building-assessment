@@ -77,7 +77,7 @@ def ReadCameraOrientation(pathIn):
 
 def getH_from_R_t(R, t):
 	# assuming R, t are numpy array
-    h = np.column_stack((R, t))
+    h = np.column_stack((R.T, -R.T@t))
     a = np.array([0, 0, 0, 1])
     h = np.vstack((h, a))
     assert h.shape == (4,4)
@@ -97,7 +97,7 @@ def PlotOdometry(Rs, ts):
 		# print(t)
 		H = getH_from_R_t(R, t)
 		# print(H)
-		oldHomogeneousMatrix = oldHomogeneousMatrix @ H
+		oldHomogeneousMatrix = H # oldHomogeneousMatrix @  H
 		pose = oldHomogeneousMatrix @ oldTranslationMatrix
 		# print("pose : ", pose, "shape", pose.shape)
 		ax.scatter(pose[0][0], pose[1][0], pose[2][0], cmap='green')
