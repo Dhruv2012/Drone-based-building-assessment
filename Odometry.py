@@ -89,18 +89,18 @@ def getH_from_R_t(R, t):
 def PlotOdometry(Rs, ts):
 	ax = plt.axes(projection='3d')
 
-	oldHomogeneousMatrix = np.identity(4)
-	oldTranslationMatrix = np.array([[0,0,0,1]]) # origin
-	oldTranslationMatrix = oldTranslationMatrix.T
+	transformation_from_camera_to_world = np.identity(4)
+	cameraOrigin = np.array([[0,0,0,1]]) # origin
+	cameraOrigin = cameraOrigin.T
 
 	for R,t in tqdm(zip(Rs, ts)):
 		# print(R)
 		# print(t)
 		H = getH_from_R_t(R, t)
 		# print(H)
-		oldHomogeneousMatrix = H
-		pose = oldHomogeneousMatrix @ oldTranslationMatrix
-		ax.scatter(pose[0][0], pose[1][0], pose[2][0], cmap='green')
+		transformation_from_camera_to_world = H
+		camera_pose_in_world_frame = transformation_from_camera_to_world @ cameraOrigin
+		ax.scatter(camera_pose_in_world_frame[0][0], camera_pose_in_world_frame[1][0], camera_pose_in_world_frame[2][0], cmap='green')
 		plt.pause(0.05)
 	plt.show()
 
