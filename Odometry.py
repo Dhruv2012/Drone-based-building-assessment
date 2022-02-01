@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 from mpl_toolkits import mplot3d
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 
 print(cv2.__version__)
@@ -92,15 +93,15 @@ def PlotOdometry(Rs, ts):
 	oldTranslationMatrix = np.array([[0,0,0,1]]) # origin
 	oldTranslationMatrix = oldTranslationMatrix.T
 
-	for R,t in zip(Rs, ts):
+	for R,t in tqdm(zip(Rs, ts)):
 		# print(R)
 		# print(t)
 		H = getH_from_R_t(R, t)
 		# print(H)
-		oldHomogeneousMatrix = H # oldHomogeneousMatrix @  H
+		oldHomogeneousMatrix = H
 		pose = oldHomogeneousMatrix @ oldTranslationMatrix
-		# print("pose : ", pose, "shape", pose.shape)
 		ax.scatter(pose[0][0], pose[1][0], pose[2][0], cmap='green')
+		plt.pause(0.05)
 	plt.show()
 
 
