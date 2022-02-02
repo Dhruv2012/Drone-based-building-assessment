@@ -31,7 +31,7 @@ Please find our current progress in the following presentation.
 <a href="https://docs.google.com/presentation/d/1SGP0-3pb7mIS0CNtp-2dJ66QOJx7wwM2IqhtbE_4YXs/edit?usp=sharing" target="_blank">Presentation Link</a>
 
 
-#### Window detection
+### Window detection
 <p align="center"><img src="readme_images/17.png" width="400" height="300"/></p>
 <p align = "center">Shufflenet inference</p>
 <br />
@@ -58,7 +58,7 @@ As shown in the fig. above, the post processing module detects all windows succe
 <br />
 <br />
 
-#### Storey/Building height estimation:
+### Storey/Building height estimation:
 
 <p align = "center"><img src="readme_images/dsf.drawio.png" width=50%" height="70%"></p>
 As shown in the fig. above, we make use of Depth(D), focal
@@ -93,7 +93,7 @@ Now, we use the unit scale to estimate the building/storey heights in the 3D rec
 <br />
 <br />
 
-#### Plan Shape/Area Estimation :
+### Plan Shape/Area Estimation :
 We use RefineNet from [building-footprint-segmentation](https://github.com/fuzailpalnak/building-footprint-segmentation) and fine-tune it on our dataset consisting of GoogleEarth & IIIT-H campus(captured using UAV), which consists of around 200 images.
 
 <p><img src="readme_images/RefineNet_ForwardPass.png" width="100%" height="50%"/></p>
