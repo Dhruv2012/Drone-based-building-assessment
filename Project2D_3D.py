@@ -42,8 +42,30 @@ print(T_Cam_to_World)
 
 drone_k = np.array([[1534.66,0,960],[0,1534.66,540],[0,0,1]]) # later make function to read from cameras.txt
 
+# Tranform 2D coordinates to 3D coordinates (don't worry about scale)
 List3D_H = Get3Dfrom2D(List2D_H, drone_k, np.array(T_Cam_to_World))
 print(List3D_H)
+
+# Convert homogeneous coordinates to 3D coordinates
+List3D = Convert3DH_3D(List3D_H)
+print(List3D)
+
+# Plot 3D points in matplotlib
+ax = plt.axes(projection='3d')
+
+for p in List3D:
+	ax.scatter(p[0], p[1], p[2], s=50.0, color='r')
+	plt.pause(0.1)
+
+plt.show()
+
+# print(List3D[:][0])
+# print(List3D.shape)
+# print(List3D[0][:][0])
+
+
+
+
 
 
 

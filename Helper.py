@@ -3,6 +3,7 @@
 import cv2
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 def getR_from_q(q):
 	# w, x, y, z
@@ -143,17 +144,30 @@ def MakeHomogeneousCoordinates(list_points):
 	return homo_list_points
 
 
-def Get3Dfrom2D(List2D, K, M):
+def Get3Dfrom2D(List2D, K, M, d=1):
 	# K is camera intrinsic matrix
 	# M is concatenated extrinsic matrix : [R t]
 	# NOTE: M_INV is not required if M is the transformation from the camera to world frame already.
+	k_i = np.eye(4)
+	k_i[:3,:3] =K
+	K = k_i
 	K_inv = np.linalg.inv(np.array(K))
 	print(M.shape, K.shape)
 	List3D = []
 	for p in List2D:
-		p3D = M.T @ K_inv @ p
+		p = list(p)
+		p.append(d)
+		p = tuple(p)
+		p3D = M @ K_inv @ p
 		List3D.append(p3D)
 	return List3D
+
+def Convert3DH_3D(List3DH):
+	List3D = []
+	for p in List3DH:
+		p_new = (p[0]/p[3], p[1]/p[3],p[2]/p[3])
+		List3D.append(p_new)
+	return np.array(List3D)
 
 
 
