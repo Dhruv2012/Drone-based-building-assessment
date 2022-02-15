@@ -3,4 +3,7 @@
 **/results
 **/Ensemble
 **/*.pth
-*/planShape/other_git_repos
+**/other_git_repos
+**/*.mp4
+**/AnalyzePoolingResults-PlanShape
+**/Nilgiri_top_face
