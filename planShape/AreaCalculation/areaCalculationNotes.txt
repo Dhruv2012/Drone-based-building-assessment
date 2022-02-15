@@ -127,3 +127,6 @@ netArea: 3795.3945920448127
 -> Do present seg model on google earth images
 -> check, analyze and train
 -> area calc for opentotsky1
+
+
+21 47 67

@@ -4,9 +4,20 @@ import matplotlib.pyplot as plt
 import shapely
 from shapely.geometry import Polygon
 
+'''
+focalLength: f of camera(in pixels)
+depth(in m): depth to the building
+'''
+# Nilgiri
+# focalLength = 2.96347438e+03
+# depth = 69 - 9
 
-focalLength = 2.96347438e+03
-depth = 100
+## GoogleEarth
+focalLength = 4156.93
+# ## nilgiri
+# depth = 144
+# Bakul
+depth = 130
 
 '''
 Height Info:
@@ -118,25 +129,21 @@ def call_this(name, h, focalLength = 2.96347438e+03, depth =0):
         area = generate_area(image_points1[:,0],image_points1[:,1], image_points2[:,0], image_points2[:,1], h, f1, f2)        
     print('area: ', area)
 
-# call_this(1,1.2)
-# call_this(3,2.6)
-# call_this(4,7)
-
-# call_this(3,20.2, 90.4)
-# call_this(4,2.6, 93)
-
-
+'''
 call_this(1, 1.2, focalLength, 69)
 call_this(2, 20.2, focalLength, 70.2)
 call_this(3, 2.6, focalLength, 90.4)
 call_this(4,7, focalLength, 93)
 # call_this(5,2.6, 100)
+'''
 
 def calcNetArea(contours, hierarchy, depth, focalLength):
     sorted_contours = sorted(contours, key=cv2.contourArea)
     maxContour = sorted_contours[len(contours) - 1]
     maxCont = np.squeeze(maxContour, axis=1)
     hierarchy = np.squeeze(hierarchy, axis=0)
+    roi_contours = []
+    roi_contours.append(maxContour)
 
     maxCont = maxCont*(depth/focalLength)
 
@@ -151,8 +158,8 @@ def calcNetArea(contours, hierarchy, depth, focalLength):
             break
     index = maxContourIndex
 
-    print(hierarchy[maxContourIndex])
-    print('hierarchy:', hierarchy)
+    # print(hierarchy[maxContourIndex])
+    # print('hierarchy:', hierarchy)
 
     if hierarchy[index][2] != -1: ## check if child is there or not
         for i in range(len(contours)):
@@ -161,6 +168,7 @@ def calcNetArea(contours, hierarchy, depth, focalLength):
                 print('Reached max Contour')
                 continue
             elif hierarchy[i][3] == maxContourIndex: ## Is a child
+                roi_contours.append(contours[i])
                 print('hierarchy of child:', hierarchy[i])
                 c = contours[i]
                 c = np.squeeze(c, axis=1)
@@ -176,11 +184,11 @@ def calcNetArea(contours, hierarchy, depth, focalLength):
     print('OUTER POLYGON AREA:', outer_polygon_area)
     print('CHILD TOTAL AREA:', child_polygon_totalarea)
     print('NET AREA:', net_area)
-    return net_area
+    return net_area, roi_contours
     
-im = cv2.imread('.\\input_to_findArea\\gray_preprocessed_undistorted_avgPooling\\5.jpg')
+im = cv2.imread('.\\input_to_findArea\\gray_preprocessed_undistorted_avgPooling\\72_130.jpg')
 imgray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
-ret, thresh = cv2.threshold(imgray.astype(np.uint8), 200, 255, 0)
+ret, thresh = cv2.threshold(imgray.astype(np.uint8), 127, 255, 0)
 contours, hierarchy = cv2.findContours(thresh, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
 print('No of contours:', len(contours))
 # cv2.drawContours(im, contours, -1, (0,255,0), 3)
@@ -194,7 +202,7 @@ print('Final Outer Polygon Area:', Polygon(c).area*(depth/focalLength)**2)
 plt.imshow(im)
 plt.show()
 
-calcNetArea(contours, hierarchy, depth, focalLength)
+_, roi_contours = calcNetArea(contours, hierarchy, depth, focalLength)
 
 sorted_contours = sorted(contours, key=cv2.contourArea)
 maxContour = sorted_contours[len(contours) - 1]
@@ -205,6 +213,13 @@ for i in range(len(contours)):
         maxContourIndex = i
         break
 print(hierarchy[maxContourIndex])
+
+
+## Draw ROI contours
+img_roicontours = im.copy()
+cv2.drawContours(img_roicontours, roi_contours, -1, (0,0,255), 5)
+plt.imshow(img_roicontours)
+plt.show()
 
 ## Draw all contours
 img_allcontours = im.copy()
