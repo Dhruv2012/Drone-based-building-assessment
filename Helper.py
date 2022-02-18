@@ -64,7 +64,9 @@ def ReadCameraOrientation(pathIn, findAll=True, findID=None, findName=None):
 		# print(q, t)
 
 		R = getR_from_q(q)
+		R.shape = (3,3)
 		t = (np.array(t)).T
+		t.shape = (3,1)
 		# print(R)
 		# print(t)
 		Rs.append(R)
@@ -143,31 +145,57 @@ def MakeHomogeneousCoordinates(list_points):
 		homo_list_points.append(tuple(new_point))
 	return homo_list_points
 
-
-def Get3Dfrom2D(List2D, K, M, d=1):
-	# K is camera intrinsic matrix
-	# M is concatenated extrinsic matrix : [R t]
-	# NOTE: M_INV is not required if M is the transformation from the camera to world frame already.
-	k_i = np.eye(4)
-	k_i[:3,:3] =K
-	K = k_i
-	K_inv = np.linalg.inv(np.array(K))
-	print(M.shape, K.shape)
-	List3D = []
-	for p in List2D:
-		p = list(p)
-		p.append(d)
-		p = tuple(p)
-		p3D = M @ K_inv @ p
-		List3D.append(p3D)
-	return List3D
-
 def Convert3DH_3D(List3DH):
 	List3D = []
 	for p in List3DH:
 		p_new = (p[0]/p[3], p[1]/p[3],p[2]/p[3])
 		List3D.append(p_new)
 	return np.array(List3D)
+
+def Get3Dfrom2D(List2D, K, R, t, d=1.75):
+	# List2D : n x 2 array of pixel locations in an image
+	# K : Intrinsic matrix for camera
+	# R : Rotation matrix describing rotation of camera frame
+	# 	  w.r.t world frame.
+	# t : translation vector describing the translation of camera frame
+	# 	  w.r.t world frame
+	# [R t] combined is known as the Camera Pose.
+
+	List2D = np.array(List2D)
+	List3D = []
+	# t.shape = (3,1)
+
+	for p in List2D:
+		# Homogeneous pixel coordinate
+		p = np.array([p[0], p[1], 1]).T; p.shape = (3,1)
+		# print("pixel: \n", p)
+
+		# Transform pixel in Camera coordinate frame
+		pc = np.linalg.inv(K) @ p
+		# print("pc : \n", pc, pc.shape)
+
+		# Transform pixel in World coordinate frame
+		pw = t + (R@pc)
+		# print("pw : \n", pw, t.shape, R.shape, pc.shape)
+
+		# Transform camera origin in World coordinate frame
+		cam = np.array([0,0,0]).T; cam.shape = (3,1)
+		cam_world = t + R @ cam
+		# print("cam_world : \n", cam_world)
+
+		# Find a ray from camera to 3d point
+		vector = pw - cam_world
+		unit_vector = vector / np.linalg.norm(vector)
+		# print("unit_vector : \n", unit_vector)
+		
+		# Point scaled along this ray
+		p3D = cam_world + d * unit_vector
+		# print("p3D : \n", p3D)
+		List3D.append(p3D)
+
+	return List3D
+
+
 
 
 
