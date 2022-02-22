@@ -195,9 +195,33 @@ def Get3Dfrom2D(List2D, K, R, t, d=1.75):
 
 	return List3D
 
+def Get2DCoordsFromSegMask(img):
+	"""
+		Returns 2D coordinates from contours of segmented roof-top mask
+	"""
+	imgray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+	ret, thresh = cv2.threshold(imgray.astype(np.uint8), 127, 255, 0)
+	contours, hierarchy = cv2.findContours(thresh, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+	print('No of contours:', len(contours))
+	
+	# cv2.drawContours(im, contours, -1, (0,255,0), 3)
+	## Draw max area contour
+	
+	# c = max(contours, key = cv2.contourArea)
+	# cv2.drawContours(img, contours, 0, (0,255,0), 3)
+	# cv2.drawContours(img, contours, 1, (255,0,0), 3)
+	# c = np.squeeze(c, axis=1)
 
+	sorted_contours = sorted(contours, key=cv2.contourArea)
+	maxContour = sorted_contours[len(contours) - 1]
+	List2D = np.squeeze(maxContour, axis=1)
+	cv2.drawContours(img, [maxContour], 0, (255,0,0), 3)
+	plt.imshow(img)
+	plt.show()
+	print('2D Points Max Contour: {}'.format(List2D.shape))
+	return list(List2D)
 
-
+	
 
 
 
