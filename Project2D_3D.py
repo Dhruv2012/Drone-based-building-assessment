@@ -18,9 +18,12 @@ Project: Building Inspection using Drones - IIITH
 
 from Helper import * # Later, we can expand this class to be a wrapper around our pipeline.
 
-datasetPath = "../data/"
-ResultsPath = "../Results/"
+# datasetPath = "../data/"
+datasetPath = r"F:\IIIT-H Work\win_det_heatmaps\rrcServerData\planShape\serverData\LEDNet\save\DJI_0166_400\val"
+# ResultsPath = "../Results/"
+ResultsPath = "./Results/"
 imageName = "00063.jpg" # This image covers three intersecting edge very well
+imagename = "\DJI_0166_00063.png"
 images_txt_path = "images.txt"
 
 
@@ -32,7 +35,8 @@ df = pd.DataFrame({'ImageName', 'R', 't', '2D', '3D'})
 R, t, _ = ReadCameraOrientation(ResultsPath+images_txt_path, False, None, imageName)
 print(R, t)
 
-List2D = SelectPointsInImage(datasetPath+imageName)
+# List2D = SelectPointsInImage(datasetPath+imagename)
+List2D = Get2DCoordsFromSegMask(cv2.imread(datasetPath+imagename))
 List2D_H = MakeHomogeneousCoordinates(List2D)
 print(List2D)
 print(List2D_H)
@@ -45,6 +49,7 @@ drone_k = np.array([[1534.66,0,960],[0,1534.66,540],[0,0,1]]) # later make funct
 # Tranform 2D coordinates to 3D coordinates (don't worry about scale)
 d = 100
 List3D = Get3Dfrom2D(List2D, drone_k, R, t, d)
+print('3D Points: ', len(List3D))
 
 # Plot 3D points in matplotlib
 ax = plt.axes(projection='3d')

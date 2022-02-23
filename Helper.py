@@ -201,7 +201,8 @@ def Get2DCoordsFromSegMask(img):
 	"""
 	imgray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 	ret, thresh = cv2.threshold(imgray.astype(np.uint8), 127, 255, 0)
-	contours, hierarchy = cv2.findContours(thresh, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+	print('RETR EXTERNAL mode')
+	contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 	print('No of contours:', len(contours))
 	
 	# cv2.drawContours(im, contours, -1, (0,255,0), 3)
