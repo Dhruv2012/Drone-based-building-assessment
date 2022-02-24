@@ -17,6 +17,7 @@ Project: Building Inspection using Drones - IIITH
 """
 
 from Helper import * # Later, we can expand this class to be a wrapper around our pipeline.
+import open3d as o3d
 
 # datasetPath = "../data/"
 datasetPath = r"F:\IIIT-H Work\win_det_heatmaps\rrcServerData\planShape\serverData\LEDNet\save\DJI_0166_400\val"
@@ -56,10 +57,19 @@ ax = plt.axes(projection='3d')
 
 for p in List3D:
 	ax.scatter(p[2], -p[1], p[0], s=50.0, color='r')
-	plt.pause(0.1)
+	# plt.pause(0.1)
 
 plt.show()
 
+pcd = o3d.geometry.PointCloud()
+List3D = np.squeeze(np.array(List3D), axis=2)
+print('3D Points: ', List3D.shape)
+pcd.points = o3d.utility.Vector3dVector(List3D)
+o3d.io.write_point_cloud("DJI_0166_00063_3D.ply", pcd)
+
+# Load saved point cloud and visualize it
+pcd_load = o3d.io.read_point_cloud("./DJI_0166_00063_3D.ply")
+o3d.visualization.draw_geometries([pcd_load])
 # print(List3D[:][0])
 # print(List3D.shape)
 # print(List3D[0][:][0])
