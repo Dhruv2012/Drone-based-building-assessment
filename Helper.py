@@ -223,6 +223,25 @@ def Get2DCoordsFromSegMask(img):
 	return list(List2D)
 
 	
+def Project3DCoordOnPlane(coords3D, plane_model):
+	"""
+	coord3D = np array of 3D points whose projection needs to be found
+	plane_model = [a, b, c, d] where ax + by + cz + d = 0 plane eqn
+	Check this https://www.toppr.com/ask/question/if-the-projection-of-point-pvecp-on-the-plane-vecrcdot-vecnq-is-the-points-svecs/ for projection
+	"""
+	normal = plane_model[:3]
+	d = plane_model[3]
+	projected3DList = []
+
+	for i in range(coords3D.shape[0]):
+		coord3D = coords3D[i]
+		# coord3D.squeeze(axis=1)
+		# normal.squeeze(axis=1)
+		# print('coord3D {} normal {}', coord3D.shape, normal.shape)
+		scalar = ((-d - np.dot(coord3D, normal)) / (np.linalg.norm(normal))**2) 
+		projectedCoord3D = coord3D + normal * scalar
+		projected3DList.append(projectedCoord3D)
+	return np.array(projected3DList)
 
 
 
