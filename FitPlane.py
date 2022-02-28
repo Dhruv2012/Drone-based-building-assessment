@@ -14,7 +14,7 @@ print(xyz_load)
 print('xyz_load shape: ', xyz_load.shape)
 
 ### RANSAC version 1
-plane_model, inliers = pcd.segment_plane(distance_threshold=0.01, ransac_n=3, num_iterations=1000)
+plane_model, inliers = pcd.segment_plane(distance_threshold=2, ransac_n=3, num_iterations=1000)
 print('plane model: ', plane_model)
 inlier_cloud = pcd.select_by_index(inliers)
 print('inliers shape:', np.asarray(inlier_cloud.points).shape)
