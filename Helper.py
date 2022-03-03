@@ -4,6 +4,8 @@ import cv2
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import os
+from itertools import chain
 
 def getR_from_q(q):
 	# w, x, y, z
@@ -201,7 +203,6 @@ def Get2DCoordsFromSegMask(img):
 	"""
 	imgray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 	ret, thresh = cv2.threshold(imgray.astype(np.uint8), 127, 255, 0)
-	print('RETR EXTERNAL mode')
 	contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 	print('No of contours:', len(contours))
 	
@@ -217,8 +218,8 @@ def Get2DCoordsFromSegMask(img):
 	maxContour = sorted_contours[len(contours) - 1]
 	List2D = np.squeeze(maxContour, axis=1)
 	cv2.drawContours(img, [maxContour], 0, (255,0,0), 3)
-	plt.imshow(img)
-	plt.show()
+	# plt.imshow(img)
+	# plt.show()
 	print('2D Points Max Contour: {}'.format(List2D.shape))
 	return list(List2D)
 
@@ -244,4 +245,32 @@ def Project3DCoordOnPlane(coords3D, plane_model):
 	return np.array(projected3DList)
 
 
+def ReconstructEntire3DStructure(resultsPath, datasetPath):
+	"""
+	resultsPath: path to COLMAP results 
+	"""
+	drone_k = np.array([[1534.66,0,960],[0,1534.66,540],[0,0,1]]) # later make function to read from cameras.txt
+	images_txt_path = "images.txt"
 
+	globalList = []
+
+	for fileName in os.listdir(datasetPath):
+		print('fileName:', fileName)
+		if fileName.endswith(".png"):
+			imageName = os.path.splitext(fileName)[0]
+			# print('imageName:', imageName)
+			# print('imgPath:', datasetPath+fileName)
+			List2D = Get2DCoordsFromSegMask(cv2.imread(os.path.join(datasetPath, fileName)))
+			# Tranform 2D coordinates to 3D coordinates (don't worry about scale)
+			d = 100
+			if 'DJI_0166_' in imageName:
+				imageName = imageName.replace('DJI_0166_', '')
+			try:
+				R, t, _ = ReadCameraOrientation(resultsPath+images_txt_path, False, None, imageName+".jpg")
+			except KeyError as e:
+				break
+			List3D = Get3Dfrom2D(List2D, drone_k, R, t, d)
+			globalList.append(List3D)
+
+	globalList3D = list(chain.from_iterable(globalList))
+	return globalList3D
