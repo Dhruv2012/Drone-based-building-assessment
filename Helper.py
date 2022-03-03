@@ -6,6 +6,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 from itertools import chain
+from PIL import Image
+import open3d as o3d
 
 def getR_from_q(q):
 	# w, x, y, z
@@ -274,3 +276,70 @@ def ReconstructEntire3DStructure(resultsPath, datasetPath):
 
 	globalList3D = list(chain.from_iterable(globalList))
 	return globalList3D
+
+def readDepth(path):
+	min_depth_percentile = 5
+	max_depth_percentile = 95
+
+	with open(path, "rb") as fid:
+		width, height, channels = np.genfromtxt(fid, delimiter="&", max_rows=1, usecols=(0, 1, 2), dtype=int)
+		fid.seek(0)
+		num_delimiter = 0
+		byte = fid.read(1)
+		while True:
+			if byte == b"&":
+				num_delimiter += 1
+				if num_delimiter >= 3:
+					break
+			byte = fid.read(1)
+		array = np.fromfile(fid, np.float32)
+	array = array.reshape((width, height, channels), order="F")
+
+	depth_map = np.transpose(array, (1, 0, 2)).squeeze()
+
+	min_depth, max_depth = np.percentile(depth_map, [min_depth_percentile, max_depth_percentile])
+	print(min_depth, max_depth)
+
+	depth_map[depth_map < min_depth] = min_depth
+	depth_map[depth_map > max_depth] = max_depth
+
+	return depth_map
+
+def getPointCloud(rgbFile, depthFile):
+	thresh = 15.0
+	scalingFactor = 1.0
+	focalX = 1534.66
+	focalY = 1534.66
+	centerX = 960.0
+	centerY = 540.0
+
+	depth = readDepth(depthFile)
+	rgb = Image.open(rgbFile)
+
+	points = []
+	colors = []
+	srcPxs = []
+
+	for v in range(depth.shape[0]):
+		for u in range(depth.shape[1]):
+			
+			Z = depth[v, u] / scalingFactor
+			if Z==0: continue
+			if (Z > thresh): continue
+
+			X = (u - centerX) * Z / focalX
+			Y = (v - centerY) * Z / focalY
+			
+			srcPxs.append((u, v))
+			points.append((X, Y, Z))
+			colors.append(rgb.getpixel((u, v)))
+
+	srcPxs = np.asarray(srcPxs).T
+	points = np.asarray(points)
+	colors = np.asarray(colors)
+	
+	pcd = o3d.geometry.PointCloud()
+	pcd.points = o3d.utility.Vector3dVector(points)
+	pcd.colors = o3d.utility.Vector3dVector(colors/255)
+	
+	return pcd, srcPxs
