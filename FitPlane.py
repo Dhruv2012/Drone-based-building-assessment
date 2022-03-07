@@ -3,9 +3,15 @@ import pyransac3d as pyrsc
 import open3d as o3d
 from pyntcloud import PyntCloud
 
+from scipy.interpolate import splprep, splev
+import matplotlib.pyplot as plt
+
+def PolyArea(x,y):
+    return 0.5*np.abs(np.dot(x,np.roll(y,1))-np.dot(y,np.roll(x,1)))
+
 # Load saved point cloud and visualize it
 pcd = o3d.io.read_point_cloud("DJI_0166_00063_3D.ply")
-# o3d.visualization.draw_geometries([pcd])
+o3d.visualization.draw_geometries([pcd])
 
 # convert Open3D.o3d.geometry.PointCloud to numpy array
 xyz_load = np.asarray(pcd.points)
@@ -53,14 +59,14 @@ print('xyz_load shape: ', xyz_load.shape)
 # cloud.plot(use_as_color=is_floor, cmap="cool")
 
 
-########### Project points on a best fit plane ############
+########## Project points on a best fit plane ############
 plane_model, inliers = pcd.segment_plane(distance_threshold=0.8, ransac_n=3, num_iterations=1000)
 plane_cloud = pcd.select_by_index(inliers)
 plane_cloud.paint_uniform_color([1.0, 0, 0])
 
 [a, b, c, d] = plane_model
 print(f"Plane equation: {a:.2f}x + {b:.2f}y + {c:.2f}z + {d:.2f} = 0")
-# o3d.visualization.draw_geometries([plane_cloud])
+o3d.visualization.draw_geometries([plane_cloud])
 
 # Normal vector to the plane
 print(a, b, c, d)
@@ -78,45 +84,60 @@ pcd_proj = o3d.geometry.PointCloud()
 pcd_proj.points = o3d.utility.Vector3dVector(points_projected_on_plane)
 o3d.visualization.draw_geometries([pcd_proj])
 
+points_projected_on_plane_arr = np.asarray(points_projected_on_plane)
 
-######## Fit a contour on these points ########
-pcd_proj_arr = np.asarray(pcd_proj.points)
-pcd_proj_arr[:,2] = 0 # Z axis does not matter now
-pcd_proj.points = o3d.utility.Vector3dVector(pcd_proj_arr)
-o3d.visualization.draw_geometries([pcd_proj])
-pcd_proj_arr_2d = pcd_proj_arr[:,:2] # 2D points
-pcd_proj_arr_2d[:,1] += int(abs(pcd_proj_arr_2d[pcd_proj_arr_2d[:,1].argmin(),:][1]+1))	# Positive x-y pixels
-pcd_proj_arr_2d[:,0] += int(abs(pcd_proj_arr_2d[pcd_proj_arr_2d[:,0].argmin(),:][0]+1))
-print(pcd_proj_arr_2d)
-extRight = tuple(pcd_proj_arr_2d[pcd_proj_arr_2d[:,0].argmax(),:])
-extDown = tuple(pcd_proj_arr_2d[pcd_proj_arr_2d[:,1].argmax(),:])
-extTop = tuple(pcd_proj_arr_2d[pcd_proj_arr_2d[:,1].argmin(),:])
-extLeft = tuple(pcd_proj_arr_2d[pcd_proj_arr_2d[:,0].argmin(),:])
-print("Extreme R, D, T, L ",extRight, extDown, extTop, extLeft)
+### Fitting curve to plane ###
+tck, u = splprep(np.asarray(points_projected_on_plane_arr[:,0:2]).T, u=None, s=0.0, per=1) 
+u_new = np.linspace(u.min(), u.max(), 1000)
+x_new, y_new = splev(u_new, tck, der=0)
 
-factor = 10;
-img_width = int(extRight[0]*factor+1)
-img_height = int(extDown[1]*factor+1)
-PlanShape = np.zeros((img_height, img_width), np.uint8)
-print("Image Height: ", img_width, img_height)
+polygon_points = zip(x_new, y_new)
 
-for p in pcd_proj_arr_2d:
-	# print(int(p[0]*(factor/2)),int(p[1]*(factor/2)))
-	PlanShape[int(p[1]*(factor)),int(p[0]*(factor))] = 255
+plt.plot(points_projected_on_plane_arr[:,0], points_projected_on_plane_arr[:,1], 'ro')
+plt.plot(x_new, y_new, 'b--')
+plt.show()
 
-kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(5,5)) #Ellipsoid kernel
+print(PolyArea(x_new, y_new))
 
 
-for i in range(0,5):
-	PlanShape = cv2.dilate(PlanShape, kernel, iterations=5)
-	PlanShape = cv2.erode(PlanShape, kernel, iterations=5)
-PlanShape = cv2.dilate(PlanShape, kernel, iterations=3)
-# PlanShape = cv2.erode(PlanShape, kernel, iterations=4)
-# PlanShape = cv2.medianBlur(PlanShape,3)
+# ######## Fit a contour on these points ########
+# pcd_proj_arr = np.asarray(pcd_proj.points)
+# pcd_proj_arr[:,2] = 0 # Z axis does not matter now
+# pcd_proj.points = o3d.utility.Vector3dVector(pcd_proj_arr)
+# o3d.visualization.draw_geometries([pcd_proj])
+# pcd_proj_arr_2d = pcd_proj_arr[:,:2] # 2D points
+# pcd_proj_arr_2d[:,1] += int(abs(pcd_proj_arr_2d[pcd_proj_arr_2d[:,1].argmin(),:][1]+1))	# Positive x-y pixels
+# pcd_proj_arr_2d[:,0] += int(abs(pcd_proj_arr_2d[pcd_proj_arr_2d[:,0].argmin(),:][0]+1))
+# print(pcd_proj_arr_2d)
+# extRight = tuple(pcd_proj_arr_2d[pcd_proj_arr_2d[:,0].argmax(),:])
+# extDown = tuple(pcd_proj_arr_2d[pcd_proj_arr_2d[:,1].argmax(),:])
+# extTop = tuple(pcd_proj_arr_2d[pcd_proj_arr_2d[:,1].argmin(),:])
+# extLeft = tuple(pcd_proj_arr_2d[pcd_proj_arr_2d[:,0].argmin(),:])
+# print("Extreme R, D, T, L ",extRight, extDown, extTop, extLeft)
 
-cv2.imshow("PlanShape", PlanShape)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+# factor = 10;
+# img_width = int(extRight[0]*factor+1)
+# img_height = int(extDown[1]*factor+1)
+# PlanShape = np.zeros((img_height, img_width), np.uint8)
+# print("Image Height: ", img_width, img_height)
+
+# for p in pcd_proj_arr_2d:
+# 	# print(int(p[0]*(factor/2)),int(p[1]*(factor/2)))
+# 	PlanShape[int(p[1]*(factor)),int(p[0]*(factor))] = 255
+
+# kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(5,5)) #Ellipsoid kernel
+
+
+# for i in range(0,5):
+# 	PlanShape = cv2.dilate(PlanShape, kernel, iterations=5)
+# 	PlanShape = cv2.erode(PlanShape, kernel, iterations=5)
+# PlanShape = cv2.dilate(PlanShape, kernel, iterations=3)
+# # PlanShape = cv2.erode(PlanShape, kernel, iterations=4)
+# # PlanShape = cv2.medianBlur(PlanShape,3)
+
+# cv2.imshow("PlanShape", PlanShape)
+# cv2.waitKey(0)
+# cv2.destroyAllWindows()
 
 
 
