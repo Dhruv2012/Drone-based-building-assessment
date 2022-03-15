@@ -4,37 +4,13 @@ import matplotlib.pyplot as plt
 import shapely
 from shapely.geometry import Polygon
 
-'''
-focalLength: f of camera(in pixels)
-depth(in m): depth to the building
-'''
-# Nilgiri
-# focalLength = 2.96347438e+03
-# depth = 69 - 9
-
-## GoogleEarth
-focalLength = 4156.93
-# ## nilgiri
-# depth = 144
-# Bakul
-depth = 130
-
-'''
-Height Info:
-17:20:36: 5th image -> 100 meters
-17:20:32: 4th image -> 93 meters
-17:20:30: 3rd image -> 90.4 meters
-17:20:21: 2nd image -> 70.2 meters
-17:20:19: 1st image -> 69 meters
 
 '''
 def get_z(pt1, pt2, h, f1, f2):
-    '''
-    pt1: y coord of Point1 in Image1
-    pt2: y coord of Point1 in Image2
-    '''
-    # print('pt1:', pt1)
-    # print('pt2:', pt2)
+    
+    # pt1: y coord of Point1 in Image1
+    # pt2: y coord of Point1 in Image2
+    
     Z = (((f1*pt1*h)/(f2*pt1-f1*pt2)))
     return Z
 
@@ -46,12 +22,12 @@ def distance(pt1, pt2):
     return dist
     
 def get_z_v2(pt1, pt2, pt1_hat, pt2_hat, h):
-    '''
-    pt1: x1,y1 = Point1 in image1
-    pt2: x2,y2 = Point2 in image1
-    pt1_hat: x1_hat,y1_hat = Point1 in image2
-    pt2_hat: x2_hat,y2_hat = Point2 in image2
-    '''
+    
+    # pt1: x1,y1 = Point1 in image1
+    # pt2: x2,y2 = Point2 in image1
+    # pt1_hat: x1_hat,y1_hat = Point1 in image2
+    # pt2_hat: x2_hat,y2_hat = Point2 in image2
+    
     print('Trying 2nd version of DEPTH CALCULATION')
     print('2nd Version pt1:', pt1)
     print('2nd Version pt2:', pt2)
@@ -75,10 +51,6 @@ def generate_area(x1,y1, x2, y2, h, f1, f2, depth=0):
     Z = get_z(y1[3],y2[3], h, f1, f2)
     print('Z:', Z)
     Z = get_z(y1[0],y2[0], h, f1, f2)
-    print('Z:', Z)
-    # print(x1)
-    # print(x2)
-    print(Z)
     # X = (Z*x1)/f1
     # Y = (Z*y1)/f1
 
@@ -129,7 +101,7 @@ def call_this(name, h, focalLength = 2.96347438e+03, depth =0):
         area = generate_area(image_points1[:,0],image_points1[:,1], image_points2[:,0], image_points2[:,1], h, f1, f2)        
     print('area: ', area)
 
-'''
+
 call_this(1, 1.2, focalLength, 69)
 call_this(2, 20.2, focalLength, 70.2)
 call_this(3, 2.6, focalLength, 90.4)
@@ -158,71 +130,105 @@ def calcNetArea(contours, hierarchy, depth, focalLength):
             break
     index = maxContourIndex
 
-    # print(hierarchy[maxContourIndex])
-    # print('hierarchy:', hierarchy)
-
     if hierarchy[index][2] != -1: ## check if child is there or not
         for i in range(len(contours)):
             child_contour = contours[i]
             if  child_contour is maxContour:
-                print('Reached max Contour')
+                # print('Reached max Contour')
                 continue
             elif hierarchy[i][3] == maxContourIndex: ## Is a child
                 roi_contours.append(contours[i])
-                print('hierarchy of child:', hierarchy[i])
+                # print('hierarchy of child:', hierarchy[i])
                 c = contours[i]
                 c = np.squeeze(c, axis=1)
                 c = c*(depth/focalLength)
                 # child_polygon_area = Polygon(c).area*(depth/focalLength)**2
                 child_polygon_area = Polygon(c).area
                 child_polygon_totalarea += child_polygon_area
-                print('childPolygonArea: ', child_polygon_area)
-                print('child Total area in loop:', child_polygon_totalarea)
+                # print('childPolygonArea: ', child_polygon_area)
+                # print('child Total area in loop:', child_polygon_totalarea)
     else:
         print('No Child Polygon is there')
     net_area = outer_polygon_area - child_polygon_totalarea
     print('OUTER POLYGON AREA:', outer_polygon_area)
-    print('CHILD TOTAL AREA:', child_polygon_totalarea)
+    print('INNER POLYGON AREA:', child_polygon_totalarea)
     print('NET AREA:', net_area)
     return net_area, roi_contours
     
-im = cv2.imread('.\\input_to_findArea\\gray_preprocessed_undistorted_avgPooling\\72_130.jpg')
-imgray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
-ret, thresh = cv2.threshold(imgray.astype(np.uint8), 127, 255, 0)
-contours, hierarchy = cv2.findContours(thresh, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
-print('No of contours:', len(contours))
-# cv2.drawContours(im, contours, -1, (0,255,0), 3)
-## Draw max area contour
-c = max(contours, key = cv2.contourArea)
-cv2.drawContours(im, [c], 0, (0,255,0), 3)
-c = np.squeeze(c, axis=1)
-print('Final Outer Polygon Area:', Polygon(c).area*(depth/focalLength)**2)    
-# for pt in c:
-#     print(pt)
-plt.imshow(im)
-plt.show()
+def get_area_from_mask(image, depth, focalLength, thresh = 200):
+    '''
+    image: input mask of building obtained by semantic segmentation
+    depth: depth to the building
+    focalLength: focalLength of camera in pixels
+    thresh: binary threshold
+    '''
+    imgray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    print('Binary threhold set to:', thresh)
+    ret, thresh = cv2.threshold(imgray.astype(np.uint8), thresh, 255, 0)
+    contours, hierarchy = cv2.findContours(thresh, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
 
-_, roi_contours = calcNetArea(contours, hierarchy, depth, focalLength)
+    ## Draw max area contour
+    c = max(contours, key = cv2.contourArea)
+    cv2.drawContours(image, [c], 0, (0,0,255), 3)
+    c = np.squeeze(c, axis=1)
+    # print('Final Outer Polygon Area:', Polygon(c).area*(depth/focalLength)**2)    
+    plt.title('Contour with max area')
+    plt.imshow(image)
+    plt.show()
 
-sorted_contours = sorted(contours, key=cv2.contourArea)
-maxContour = sorted_contours[len(contours) - 1]
-hierarchy = np.squeeze(hierarchy, axis=0)
-maxContourIndex = -1
-for i in range(len(contours)):
-    if contours[i] is maxContour:
-        maxContourIndex = i
-        break
-print(hierarchy[maxContourIndex])
+    _, roi_contours = calcNetArea(contours, hierarchy, depth, focalLength)
+
+    '''
+    sorted_contours = sorted(contours, key=cv2.contourArea)
+    maxContour = sorted_contours[len(contours) - 1]
+    hierarchy = np.squeeze(hierarchy, axis=0)
+    maxContourIndex = -1
+    for i in range(len(contours)):
+        if contours[i] is maxContour:
+            maxContourIndex = i
+            break
+    '''
+
+    ## Draw ROI contours
+    img_roicontours = image.copy()
+    cv2.drawContours(img_roicontours, roi_contours, -1, (0,0,255), 5)
+    plt.title('Building contour')
+    plt.imshow(img_roicontours)
+    plt.show()
+
+'''
+focalLength: f of camera(in pixels)
+depth(in m): depth to the building
+'''
+
+## For GoogleEarth dataset
+# focalLength = 4156.93
+# # ## nilgiri
+# # depth = 144
+# # Bakul
+# depth = 130
+
+############# For Nilgiri Building ##################
+focalLength = 2.96347438e+03
+'''
+Height Info:
+17:20:36: 5th image - 5.jpg -> 100 meters
+17:20:32: 4th image - 4.jpg -> 93 meters
+17:20:30: 3rd image - 3.jpg -> 90.4 meters
+17:20:21: 2nd image - 2.jpg -> 70.2 meters
+17:20:19: 1st image - 1.jpg->  69 meters
+'''
+# 5th image of Nilgiri: depth = UAV height - height of facade
+depth = 93 - 9
+
+############## For Bakul building ####################
+'''
+Height Info:
+1st image -> 71_193.jpg -> 193 meters
+2nd image -> 72_130 - > 130 meters
+'''
+# depth = UAV height - height of facade
+# depth = UAV Height - 9
 
 
-## Draw ROI contours
-img_roicontours = im.copy()
-cv2.drawContours(img_roicontours, roi_contours, -1, (0,0,255), 5)
-plt.imshow(img_roicontours)
-plt.show()
-
-## Draw all contours
-img_allcontours = im.copy()
-cv2.drawContours(img_allcontours, contours, -1, (0,0,255), 5)
-plt.imshow(img_allcontours)
-plt.show()
+get_area_from_mask(cv2.imread('.\\input_to_findArea\\gray_preprocessed_undistorted_avgPooling\\Nilgiri\\4.jpg'), depth, focalLength)
