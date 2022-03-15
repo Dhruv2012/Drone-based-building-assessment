@@ -28,7 +28,7 @@ For plan-shape/area (The ground truths are segmented masks in white)
 
 ### Progress till now:
 Please find our current progress in the following presentation.
-<a href="https://docs.google.com/presentation/d/1SGP0-3pb7mIS0CNtp-2dJ66QOJx7wwM2IqhtbE_4YXs/edit?usp=sharing" target="_blank">Presentation Link</a>
+<a href="https://docs.google.com/presentation/d/1Oj5h2Y_G0Geoxrf7Ti8xwFlPiwgsrAcYaunN2R8y6zE/edit?usp=sharing" target="_blank">Presentation Link</a>
 
 
 ### Window detection
