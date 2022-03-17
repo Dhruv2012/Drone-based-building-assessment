@@ -8,6 +8,7 @@ import os
 from itertools import chain
 from PIL import Image
 import open3d as o3d
+from scipy.interpolate import splprep, splev
 
 def getR_from_q(q):
 	# w, x, y, z
@@ -204,7 +205,7 @@ def Get2DCoordsFromSegMask(img):
 		Returns 2D coordinates from contours of segmented roof-top mask
 	"""
 	imgray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-	ret, thresh = cv2.threshold(imgray.astype(np.uint8), 127, 255, 0)
+	ret, thresh = cv2.threshold(imgray.astype(np.uint8), 10, 255, 0)
 	contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 	print('No of contours:', len(contours))
 	
@@ -222,7 +223,7 @@ def Get2DCoordsFromSegMask(img):
 	cv2.drawContours(img, [maxContour], 0, (255,0,0), 3)
 	# plt.imshow(img)
 	# plt.show()
-	print('2D Points Max Contour: {}'.format(List2D.shape))
+	# print('2D Points Max Contour: {}'.format(List2D.shape))
 	return list(List2D)
 
 	
@@ -343,3 +344,122 @@ def getPointCloud(rgbFile, depthFile):
 	pcd.colors = o3d.utility.Vector3dVector(colors/255)
 	
 	return pcd, srcPxs
+
+def Get3Dfrom2D_DepthMaps(List2D, K, R, t, depth_map, scale=1, debug=False, dataFolder=r"data/img"):
+	# List2D : n x 2 array of pixel locations in an image
+	# K : Intrinsic matrix for camera
+	# R : Rotation matrix describing rotation of camera frame
+	# 	  w.r.t world frame.
+	# t : translation vector describing the translation of camera frame
+	# 	  w.r.t world frame
+	# [R t] combined is known as the Camera Pose.
+	# depth_map : depth map obtained from bin file corresponding to that image
+	List2D = np.array(List2D)
+	List3D = []
+	# t.shape = (3,1)
+	print('depth_map: ', depth_map.shape)
+	depth_map_copy = depth_map
+	min_depth, max_depth = np.percentile(depth_map, [5, 95])
+
+	for p in List2D:
+		# skip if index is out of bound
+		if p[1] >= depth_map.shape[0] or p[0] >= depth_map.shape[1]:
+			continue
+
+		# Homogeneous pixel coordinate
+		p = np.array([p[0], p[1], 1]).T; p.shape = (3,1)
+		# print("pixel: \n", p)
+
+		# Transform pixel in Camera coordinate frame
+		pc = np.linalg.inv(K) @ p
+		# print("pc : \n", pc, pc.shape)
+
+		# Transform pixel in World coordinate frame
+		pw = t + (R@pc)
+		# print("pw : \n", pw, t.shape, R.shape, pc.shape)
+
+		# Transform camera origin in World coordinate frame
+		cam = np.array([0,0,0]).T; cam.shape = (3,1)
+		cam_world = t + R @ cam
+		# print("cam_world : \n", cam_world)
+
+		# Find a ray from camera to 3d point
+		vector = pw - cam_world
+		unit_vector = vector / np.linalg.norm(vector)
+		# print("unit_vector : \n", unit_vector)
+		
+		# Point scaled along this ray
+		p3D = cam_world + scale*depth_map[p[1], p[0]] * unit_vector
+		if debug:
+			depth_map_copy[p[1],p[0]] = max_depth + (max_depth+min_depth)/2
+
+		# print("p3D : \n", p3D)
+		List3D.append(p3D)
+
+	if debug:
+		plt.imshow(depth_map_copy)
+		plt.savefig(dataFolder + '_depth_map_points.png')
+		plt.show()
+
+	return List3D
+
+def visualizeFast(List3D, points=50):
+	import random
+	if points!=-1:
+		delta_sample = random.sample(List3D, points)
+	else:
+		delta_sample = List3D
+
+
+	ax = plt.axes(projection='3d')
+	for p in delta_sample:
+		ax.scatter(p[2], -p[1], p[0], s=50.0, color='r')
+		# plt.pause(0.001)
+	plt.show()
+
+def readDepth(path, debug=False, dataFolder=r"data/img"):
+	min_depth_percentile = 5
+	max_depth_percentile = 95
+
+	with open(path, "rb") as fid:
+		width, height, channels = np.genfromtxt(fid, delimiter="&", max_rows=1, usecols=(0, 1, 2), dtype=int)
+		fid.seek(0)
+		num_delimiter = 0
+		byte = fid.read(1)
+		while True:
+			if byte == b"&":
+				num_delimiter += 1
+				if num_delimiter >= 3:
+					break
+			byte = fid.read(1)
+		array = np.fromfile(fid, np.float32)
+	
+	print('width {} height {}'.format(width, height))
+	array = array.reshape((width, height, channels), order="F")
+
+	depth_map = np.transpose(array, (1, 0, 2)).squeeze()
+
+	min_depth, max_depth = np.percentile(depth_map, [min_depth_percentile, max_depth_percentile])
+	print(min_depth, max_depth)
+
+	depth_map[depth_map < min_depth] = min_depth
+	depth_map[depth_map > max_depth] = max_depth
+
+	if debug:
+		plt.imshow(depth_map)
+		plt.savefig(dataFolder + '_depth_map.png')
+		plt.show()
+
+
+	return depth_map
+
+def SavePoints(List3D, Name):
+	pcd = o3d.geometry.PointCloud()
+	globalList3D = np.squeeze(np.array(List3D), axis=2)
+	pcd.points = o3d.utility.Vector3dVector(globalList3D)
+	o3d.io.write_point_cloud(Name, pcd)
+
+
+def PolyArea(x,y):
+    return 0.5*np.abs(np.dot(x,np.roll(y,1))-np.dot(y,np.roll(x,1)))
+		
