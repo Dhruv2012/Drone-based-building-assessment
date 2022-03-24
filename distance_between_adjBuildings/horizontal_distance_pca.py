@@ -70,8 +70,8 @@ class ConditionalRANSAC:
                 if ground_plane_normal is not None:
                     # print('ground plane normal: %s' % ground_plane_normal)
                     dot_product = np.dot(vecC, ground_plane_normal)
-                    if abs(dot_product) <= 0.05:
-                        print('dot product: %s' % dot_product)
+                    if abs(dot_product) <= 0.005:
+                        # print('dot product: %s' % dot_product)
                         best_eq = plane_eq
                         best_inliers = pt_id_inliers
                 else:
@@ -177,20 +177,42 @@ def estimate_verticalPlanes(ply_file):
     print('rightBuildingPlaneModel: {}'.format(rightBuildingPlaneModel))
     # segment_plane_RANSAC(cloud_down)
 
+    ## Check if max values in both plane models have same sign else multiply by (-1)
+    leftBArr = np.array(leftBuildingPlaneModel)
+    rightBArr = np.array(rightBuildingPlaneModel)
+
+    print('absLeftPlaneModel: {}'.format(abs(leftBArr[:3])))
+    print('absRightPlaneModel: {}'.format(abs(rightBArr[:3])))
+    leftBMaxAbs, leftBIndex = np.max(abs(leftBArr[:3])), np.argmax(abs(leftBArr[:3]))
+    rightBMaxAbs, rightBIndex = np.max(abs(rightBArr[:3])), np.argmax(abs(rightBArr[:3]))
+
+    print('leftBMax {} rightBMax {}'.format(leftBMaxAbs, rightBMaxAbs))
+    print('After flipping sign')
+    if leftBIndex != rightBIndex:
+        leftBArr = -1.00*leftBArr
+        print('leftBuildingPlaneModel: {}'.format(leftBArr))
+    elif leftBIndex == rightBIndex:
+        leftBMax = leftBArr[leftBIndex]
+        rightBMax = rightBArr[rightBIndex]
+        if (leftBMax > 0 and rightBMax < 0) or (leftBMax < 0 and rightBMax > 0):
+            leftBArr = -1.00*leftBArr
+            print('leftBuildingPlaneModel: {}'.format(leftBArr))
+
     ## distance between 2 planes
-    d1 = leftBuildingPlaneModel[3]
-    d2 = rightBuildingPlaneModel[3]
-    a,b,c,_ = np.mean([leftBuildingPlaneModel, rightBuildingPlaneModel], axis=0)
+    d1 = leftBArr[3]
+    d2 = rightBArr[3]
+
+    a,b,c,_ = np.mean([leftBArr, rightBArr], axis=0)
     print('a {} b {} c {}'.format(a,b,c))
     dist_between_buildings = abs((d2 -d1)/(a**2 + b**2 + c**2)** 0.5)
-    print('Dist between 2 buildins is: {} mesh units'.format(dist_between_buildings))
+    print('Dist between 2 buildings is: {} mesh units'.format(dist_between_buildings))
 
 def cluster_dummy(cloud):
     points = np.array(cloud.points)
     # leftBuildingIndices = np.where(points[:, 2] < 0)
     # rightBuildingIndices = np.where(points[:, 2] > 0)
     leftBuildingPoints = points[points[:,0] < 0]
-    print('points shape:', leftBuildingPoints.shape)
+    # print('points shape:', leftBuildingPoints.shape)
     rightBuildingPoints = points[points[:,0] > 0]
 
     leftBuilding = o3d.geometry.PointCloud()
