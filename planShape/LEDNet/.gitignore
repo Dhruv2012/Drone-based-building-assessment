@@ -1,0 +1,10 @@
+#Files
+*.pyc
+*.pyo
+*/__pycache__/
+*/*/__pycache__/
+*/*/*/__pycache__/
+test/save_results/
+test/save_color/
+.idea/
+
