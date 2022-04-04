@@ -31,7 +31,7 @@ def ReadCameraOrientation(pathIn, findAll=True, findID=None, findName=None):
 	"""
 		1. Returns the R, t to transform from world frame to camera frame.
 		2. If findAll==false, returns the findID camera R,t
-		Not optimized for 2 task alone. 
+		Not optimized for task 2 alone. 
 	"""
 	ID_Rt = {} # if only few cam R,t required.
 	Name_Rt = {}
@@ -57,6 +57,9 @@ def ReadCameraOrientation(pathIn, findAll=True, findID=None, findName=None):
 	# print(only_transformation_lines)
 	only_transformation_lines.sort(key=lambda x: int(x[0]))
 
+	old_H = np.eye(4) # Identity transformation
+
+	# This should not be running everytime.
 	for line in only_transformation_lines:
 		ID = int(line[0])
 		Name = line[9]
@@ -72,24 +75,34 @@ def ReadCameraOrientation(pathIn, findAll=True, findID=None, findName=None):
 		R.shape = (3,3)
 		t = (np.array(t)).T
 		t.shape = (3,1)
+		H = getH_from_R_t(R, t)
+		old_H = H@old_H
 		# print(R)
 		# print(t)
 		Rs.append(R)
 		ts.append(t)
-		ID_Rt[ID] = [R, t]
-		Name_Rt[Name] = [R, t]
+		ID_Rt[ID] = [R, t, old_H]
+		Name_Rt[Name] = [R, t, old_H]
 	
 	if findAll:
 		return Rs, ts
 	else:
 		if findID is not None:
-			return ID_Rt[findID][0], ID_Rt[findID][1], ID_Rt
+			return ID_Rt[findID][0], ID_Rt[findID][1], ID_Rt[findID][2], ID_Rt
 		else:
-			return Name_Rt[findName][0], Name_Rt[findName][1], Name_Rt
+			return Name_Rt[findName][0], Name_Rt[findName][1], Name_Rt[findName][2], Name_Rt
 
 def getH_Inverse_from_R_t(R, t):
 	# assuming R, t are numpy array
     h = np.column_stack((R.T, -R.T@t))
+    a = np.array([0, 0, 0, 1])
+    h = np.vstack((h, a))
+    assert h.shape == (4,4)
+    return h
+
+def getH_from_R_t(R, t):
+	# assuming R, t are numpy array
+    h = np.column_stack((R, t))
     a = np.array([0, 0, 0, 1])
     h = np.vstack((h, a))
     assert h.shape == (4,4)
@@ -157,7 +170,7 @@ def Convert3DH_3D(List3DH):
 		List3D.append(p_new)
 	return np.array(List3D)
 
-def Get3Dfrom2D(List2D, K, R, t, d=1.75):
+def Get3Dfrom2D(List2D, K, R, t, d=1.75, H=None):
 	# List2D : n x 2 array of pixel locations in an image
 	# K : Intrinsic matrix for camera
 	# R : Rotation matrix describing rotation of camera frame
@@ -169,6 +182,10 @@ def Get3Dfrom2D(List2D, K, R, t, d=1.75):
 	List2D = np.array(List2D)
 	List3D = []
 	# t.shape = (3,1)
+
+	# if H is not None:
+	# 	R = H[:3,:3]
+	# 	t = H[:3,3]
 
 	for p in List2D:
 		# Homogeneous pixel coordinate
@@ -207,7 +224,7 @@ def Get2DCoordsFromSegMask(img):
 	imgray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 	ret, thresh = cv2.threshold(imgray.astype(np.uint8), 10, 255, 0)
 	contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-	print('No of contours:', len(contours))
+	# print('No of contours:', len(contours))
 	
 	# cv2.drawContours(im, contours, -1, (0,255,0), 3)
 	## Draw max area contour
@@ -345,7 +362,7 @@ def getPointCloud(rgbFile, depthFile):
 	
 	return pcd, srcPxs
 
-def Get3Dfrom2D_DepthMaps(List2D, K, R, t, depth_map, scale=1, debug=False, dataFolder=r"data/img"):
+def Get3Dfrom2D_DepthMaps(List2D, K, R, t, last_cam, depth_map, scale=1, debug=False, dataFolder=r"data/img", H=None):
 	# List2D : n x 2 array of pixel locations in an image
 	# K : Intrinsic matrix for camera
 	# R : Rotation matrix describing rotation of camera frame
@@ -354,12 +371,31 @@ def Get3Dfrom2D_DepthMaps(List2D, K, R, t, depth_map, scale=1, debug=False, data
 	# 	  w.r.t world frame
 	# [R t] combined is known as the Camera Pose.
 	# depth_map : depth map obtained from bin file corresponding to that image
+	
+	transform = True
+	print("[Helper]:[Get3Dfrom2D_DepthMaps]\n")
 	List2D = np.array(List2D)
 	List3D = []
 	# t.shape = (3,1)
 	print('depth_map: ', depth_map.shape)
+	print('List2D: ', List2D.shape)
 	depth_map_copy = depth_map
 	min_depth, max_depth = np.percentile(depth_map, [5, 95])
+
+	if H is not None:
+		R_ = H[:3,:3]
+		t_ = H[:3,3]
+		t_.shape =(3,1)
+		# print('Rotation and Translation carried:\n', R_, t_)
+
+	
+	# Transform camera origin in World coordinate frame
+	cam = last_cam
+	cam = np.array(cam).T; cam.shape = (3,1)
+	cam_world =  t + R @ cam
+	# cam_world = cam
+	last_cam = cam_world # For future calls
+	print("cam_world : \n", cam_world)
 
 	for p in List2D:
 		# skip if index is out of bound
@@ -378,11 +414,6 @@ def Get3Dfrom2D_DepthMaps(List2D, K, R, t, depth_map, scale=1, debug=False, data
 		pw = t + (R@pc)
 		# print("pw : \n", pw, t.shape, R.shape, pc.shape)
 
-		# Transform camera origin in World coordinate frame
-		cam = np.array([0,0,0]).T; cam.shape = (3,1)
-		cam_world = t + R @ cam
-		# print("cam_world : \n", cam_world)
-
 		# Find a ray from camera to 3d point
 		vector = pw - cam_world
 		unit_vector = vector / np.linalg.norm(vector)
@@ -396,12 +427,15 @@ def Get3Dfrom2D_DepthMaps(List2D, K, R, t, depth_map, scale=1, debug=False, data
 		# print("p3D : \n", p3D)
 		List3D.append(p3D)
 
+	# if transform:
+
+
 	if debug:
 		plt.imshow(depth_map_copy)
 		plt.savefig(dataFolder + '_depth_map_points.png')
 		plt.show()
 
-	return List3D
+	return List3D, last_cam, R, t
 
 def visualizeFast(List3D, points=50):
 	import random
@@ -462,4 +496,45 @@ def SavePoints(List3D, Name):
 
 def PolyArea(x,y):
     return 0.5*np.abs(np.dot(x,np.roll(y,1))-np.dot(y,np.roll(x,1)))
-		
+
+
+def display_inlier_outlier( cloud , ind ): 
+    inlier_cloud = cloud.select_by_index( ind ) 
+    outlier_cloud = cloud.select_by_index( ind , invert = True ) # Set to True to save points other than ind
+    print("Showing outliers (red) and inliers (gray): ") 
+    outlier_cloud.paint_uniform_color([1, 0, 0])
+    inlier_cloud.paint_uniform_color([0.8, 0.8, 0.8]) 
+    o3d.visualization.draw_geometries([ inlier_cloud , outlier_cloud ],
+                                      width=1080, height=760, zoom=0.1412,
+                                      front=[0.4257, -0.2125, -0.8795],
+                                      lookat=[2.6172, 2.0475, 1.532],
+                                      up=[-0.0694, -0.9768, 0.2024])
+
+def pick_points(pcd):
+    print("")
+    print(
+        "1) Please pick at least three correspondences using [shift + left click]"
+    )
+    print("   Press [shift + right click] to undo point picking")
+    print("2) Afther picking points, press q for close the window")
+    vis = o3d.visualization.VisualizerWithEditing()
+    vis.create_window()
+    vis.add_geometry(pcd)
+    vis.run()  # user picks points
+    vis.destroy_window()
+    print("")
+    return vis.get_picked_points()
+
+
+def demo_crop_geometry(pcd):
+    print("Demo for manual geometry cropping")
+    print(
+        "1) Press 'Y' twice to align geometry with negative direction of y-axis"
+    )
+    print("2) Press 'K' to lock screen and to switch to selection mode")
+    print("3) Drag for rectangle selection,")
+    print("   or use ctrl + left click for polygon selection")
+    print("4) Press 'C' to get a selected geometry and to save it")
+    print("5) Press 'F' to switch to freeview mode")
+    o3d.visualization.draw_geometries_with_editing([pcd])
+    return pcd
