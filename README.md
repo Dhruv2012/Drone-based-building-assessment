@@ -12,7 +12,7 @@ To identify salient structural elements in buildings from RGB images captured us
 4) Building Plan estimation
 
 #### Dataset:
-We have made our own custom dataset by capturing buildings on IIIT-H campus through a drone. In addition, we have also used the open-source zju_facade dataset to train our models.
+We have made our own custom dataset by capturing buildings on IIIT-H campus through a drone. In addition, we have also used the open-source zju_facade dataset to train our models. IIIT-H campus window dataset can be found [here](https://drive.google.com/drive/folders/1fxJP8x9y8I23DFWardhpMM5BZAUY4WtM?usp=sharing).
 
 <p>
   <img src="readme_images/Dataset.drawio.png" width="45%" height="90%"/>     
@@ -102,6 +102,12 @@ We use RefineNet from [building-footprint-segmentation](https://github.com/fuzai
 <p><img src="readme_images/RefineNet_Result-1.drawio.png" width="100%" height="50%"/></p>
 <p align="center">Sample results from the dataset</p>
 
+#### Area Estimation:
+Now, we estimate the area(in m²) from the contour Area of the segmented building mask. \
+  Area(in m²) = Contour Area(in pixels)*(D/f)² \
+  D: Depth(in m)
+  f: focalLength(in pixels)
+  
 <br />
 <br />
 
