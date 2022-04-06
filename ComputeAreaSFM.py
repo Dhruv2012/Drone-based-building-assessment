@@ -12,9 +12,12 @@ dataset = r"data/";
 depthDir = dataset
 ResultsPath = "Results/"
 CameraPoseFile = "images.txt"
+CameraIntrinsicFile = "cameras.txt"
+CameraIntrinsicFileBIN = "cameras.bin"
 
-imageName = ["00063.jpg", "00064.jpg", "00399.jpg"] # can add more images from the "data/extra" folder
-segImageName = ["00063.png", "00064.png", "00399.png"] # with corresponding masks in "data/extra" folder
+imageName = ["00063.jpg", "00064.jpg",  "00327.jpg", "00357.jpg", "00399.jpg"] # can add more images from the "data/extra" folder # "00249.jpg", "00291.jpg",
+segImageName = ["00063.png", "00064.png", "00327.png", "00357.png", "00399.png"] # with corresponding masks in "data/extra" folder # "00249.png", "00291.png",
+
 
 customList = [[(104, 716), (620, 654), (638, 732), (802, 714)], [(458, 556), (862, 380), (871, 464), (980, 416)]]
 Rs = []
@@ -26,45 +29,23 @@ if Find3D:
 	List3DAll = []
 	List3DAll_Depths = []
 	last_cam = [0,0,0]
+
 	for imgName, segName in zip(imageName, segImageName):
 		R, t, H, _ = ReadCameraOrientation(ResultsPath+CameraPoseFile, False, None, imgName)
-		# print(R, t)
+		K, _ = readIntrinsics(ResultsPath+CameraIntrinsicFile, int(imgName[:-4]))
+		print("Intrinsics: ", K)
+		# read_cameras_binary(ResultsPath+CameraIntrinsicFileBIN) # better have a cameras.txt(rather than .bin) from dense reconstruction.
 
 		List2D = Get2DCoordsFromSegMask(cv2.imread(dataset + segName))
-		# List2D = customList[i]
-		# print(np.array(List2D).shape, List2D)
-
-		# # Scaled with constant value
-		# List3D = Get3Dfrom2D(List2D, drone_k, R, t, d=1.75)
-		# print(np.array(List3D).shape)
-		# SavePoints(List3D, dataset + imgName[:-4]+"_PC.ply")
-		# List3DAll = List3DAll + List3D
 
 		# Scaled with depth map
 		depthMap = readDepth(dataset + imgName + ".geometric.bin", debug, dataset+imgName)
-		List3D_DepthMaps, _, R, t = Get3Dfrom2D_DepthMaps(List2D, drone_k, R.T, -R.T@t, last_cam, depthMap, 1, debug, dataset+imgName, H)
-		# print("R: ", R)
-		# print("T: ", t)
-		# Rs.append(R); ts.append(t);
-		# print("List 3D Depth Maps: ", np.array(List3D_DepthMaps).shape)
-		# # list3D = np.array(List3D_DepthMaps)
-		# # list3D.shape = (4,3)
-		# # print("List 3D points: ", list3D)
-		# print("-------------------------------")
-		# # list3D_T = []
-		# # if i == 1:
-		# # 	for p in list3D:
-		# # 		p.shape = (3,1)
-		# # 		p = -ts[i-1] + Rs[i-1].T @ p
-		# # 		list3D_T.append(p)
-		# # 	print("* * *: ",list3D_T)
-
+		List3D_DepthMaps, _, R, t = Get3Dfrom2D_DepthMaps(List2D, K, R.T, -R.T@t, last_cam, depthMap, 1, debug, dataset+imgName, H)
 
 		SavePoints(List3D_DepthMaps, dataset + imgName[:-4]+"_PC_Depth.ply")
 		# if i == 1:
 		# 	SavePoints(list3D_T, dataset + imgName[:-4]+"_PC_Depth_Transformed.ply")
 		List3DAll_Depths = List3DAll_Depths + List3D_DepthMaps
-		print(List3D_DepthMaps)
 
 		# Plot
 		# visualizeFast(List3D, 200)
@@ -81,10 +62,11 @@ if FindArea:
 	imageName = imageName[index] # Right now, just computes area for single image.
 	
 	# TODO 1 : Remove outliers in depth ply file, otherwise curve fitting fails!
-	pcd = o3d.io.read_point_cloud(dataset + imageName[:-4]+"_PC_Depth.ply") # Depth
-	# points = pick_points(pcd)
+	# pcd = o3d.io.read_point_cloud(dataset + imageName[:-4]+"_PC_Depth.ply") # Depth
+	pcd = o3d.io.read_point_cloud(dataset + "OneSideClosed.ply") # Depth
+	points = pick_points(pcd)
 	# print(points) # selected indexes = [100, 1310, 1532, 2]
-	points = [100, 1310, 1532, 2]
+	# points = [100, 1310, 1532, 2]
 	pcd_plane = pcd.select_by_index(points)
 
 	# # pcd = o3d.io.read_point_cloud(dataset + imageName[:-4]+"_PC.ply") # Scale
