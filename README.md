@@ -35,22 +35,22 @@ Please find our current progress in the following presentation.
 <p align="center"><img src="readme_images/17.png" width="200" height="150"/></p>
 <p align = "center">Shufflenet inference</p>
 <br />
-As shown in the above fig., we have the detected windows from the model inference(Shufflenet from win_det_heatmaps). However, we see that some windows still go undetected. Hence, we have a designed a post-processing module 
+As shown in the above fig., we have the detected windows from the model inference(Shufflenet from win_det_heatmaps). However, we see that some windows still go undetected. Hence, we have a designed a post-processing module.  
 
 <br />
 
 Post-processing module:
-<p><img src="readme_images/newblockd.drawio (1).png" width="80%" height="50%"/></p>
+<p align="center"><img src="readme_images/newblockd.drawio (1).png" width="70%" height="40%"/></p>
 
 We take the detected windows as templates and run them over the horizontal patch in the image. We try to match this template in the patch and detect the windows which we were previously not detected. 
 <br />
 
 
-<p><img src="readme_images/newtm.drawio.png" width=750%" height="70%"/></p>
+<p align="center"><img src="readme_images/newtm.drawio.png" width=500%" height="70%"/></p>
 <p align = "center">Model inference(left), Horizontal Patch
 (middle), Template (right)</p>
 
-<p><img src="readme_images/newio.drawio.png" width=750%" height="70%"/></p>
+<p align="center"><img src="readme_images/newio.drawio.png" width=500%" height="70%"/></p>
 <p align = "center">Post processing results</p>
 
 As shown in the fig. above, the post processing module detects all windows successfully.
@@ -103,7 +103,6 @@ We use RefineNet from [building-footprint-segmentation](https://github.com/fuzai
 <p align="center">Sample results on 4 campus buildings from the dataset - Nilgiri(top-left), Bakul(bottom-left), Aarogya(top-right), Car Service Station(bottom-right)</p>
 <br />
 
-#### Area Estimation:
 Now, we estimate the area(in m²) from the contour Area of the segmented building mask. \
   Area(in m²) = Contour Area(in pixels)*(D/f)² \
   D: Depth(in m)
@@ -112,6 +111,23 @@ Now, we estimate the area(in m²) from the contour Area of the segmented buildin
 <p align="center"><img src="readme_images/rooftoparea_results.png" width=70%" height="70%"></p>
 
 <br />
+<br />
+
+### Publications:
+-> Dhruv Patel, Shivani Chepuri, Sarvesh Thakur, Harikumar Kandath, Ravi Kiran S, K. Madhava Krishna, “Identifying and estimating salient parameters of a building using UAV based remote sensing”, submitted to IEEE International Conference on Unmanned Aircraft Systems (ICUAS) 2022. 
+
+<br />
+
+### Objectives for next phase:
+-> Distance between adjacent buildings \
+-> Parapets, objects on roof-top \
+-> Staircase exit and water tanks on the roof-top \
+-> Cracks on the surface wall and roof-top \
+-> Lifelines (electric and water supply, sewage pipes) \
+-> Toppling/falling hazard \
+-> Building level (flat or tilted ground)
+
+
 <br />
 
 ### Project Team:
