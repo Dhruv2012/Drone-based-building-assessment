@@ -166,7 +166,7 @@ def evalNet(nth_epoch, heatmaps, tagmaps, valid_data_loader, loss_config, test_c
 def inferNet(infer_data_loader, network, merge_hm_flip_func, merge_tag_flip_func, flip_pairs,
              patch_width, patch_height, loss_config, test_config, final_output_path, flip_test=True):
 
-    print('in valid')
+    print('in infer')
     network.eval()
 
     heatmaps_list = []
