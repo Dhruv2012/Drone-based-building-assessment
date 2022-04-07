@@ -32,7 +32,7 @@ Please find our current progress in the following presentation.
 
 
 ### Window detection
-<p align="center"><img src="readme_images/17.png" width="400" height="300"/></p>
+<p align="center"><img src="readme_images/17.png" width="200" height="150"/></p>
 <p align = "center">Shufflenet inference</p>
 <br />
 As shown in the above fig., we have the detected windows from the model inference(Shufflenet from win_det_heatmaps). However, we see that some windows still go undetected. Hence, we have a designed a post-processing module 
@@ -60,7 +60,7 @@ As shown in the fig. above, the post processing module detects all windows succe
 
 ### Storey/Building height estimation:
 
-<p align = "center"><img src="readme_images/dsf.drawio.png" width=50%" height="70%"></p>
+<p align = "center"><img src="readme_images/VerticalPlaneMapping2.drawio.png" width=50%" height="70%"></p>
 As shown in the fig. above, we make use of Depth(D), focal
 length of the camera(f), height of the UAV(H) and image
 coordinates(x,y) are used to map the coordinates of each
@@ -100,7 +100,8 @@ We use RefineNet from [building-footprint-segmentation](https://github.com/fuzai
 <p align="center">Inference</p>
 
 <p><img src="readme_images/RefineNet_Result-1.drawio.png" width="100%" height="50%"/></p>
-<p align="center">Sample results from the dataset</p>
+<p align="center">Sample results on 4 campus buildings from the dataset - Nilgiri(top-left), Bakul(bottom-left), Aarogya(top-right), Car Service Station(bottom-right)</p>
+<br />
 
 #### Area Estimation:
 Now, we estimate the area(in m²) from the contour Area of the segmented building mask. \
@@ -108,6 +109,8 @@ Now, we estimate the area(in m²) from the contour Area of the segmented buildin
   D: Depth(in m)
   f: focalLength(in pixels)
   
+<p align="center"><img src="readme_images/rooftoparea_results.png" width=70%" height="70%"></p>
+
 <br />
 <br />
 
