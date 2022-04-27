@@ -1,13 +1,15 @@
 ## Mapping Windows to Vertical Plane
+<p align="center"><img src="windows_mapped_on_plane.png" width="70%" height="40%"/></p>
+
 ### Sample Data
--> Sample data of 3 seqs is provided in [sample_seq_data](https://github.com/Dhruv2012/Drone-based-building-assessment/tree/resolveNMS/win_det_heatmaps/sample_seq_data). It contains images, log files and CSV File containing window coordinates obtained from post-processing module.
+-> Sample data of 3 seqs is provided in [sample_seq_data](../sample_seq_data). It contains images, log files and CSV File(containing window coordinates obtained from post-processing module).
 
 ### How to run?
 
 * **mapToVerticalPlane.ipynb**: \
 This notebook can be used for more of a visualization purpose as to how the module gets the final mapped windows on the plane along with the intermediate results. It maps windows from each image to a vertical plane and finds window/storey count and gets a rough estimate of avg. height difference between consecutive storeys in a building(which then can be further used to scale up 3D model of the building).
 
-    -> Takes sample seq data(3 seqs) of Bakul building from [sample_seq_data](https://github.com/Dhruv2012/Drone-based-building-assessment/tree/resolveNMS/win_det_heatmaps/sample_seq_data) and maps them onto imaginary vertical plane. \
+    -> Takes sample seq data(3 seqs) of Bakul building from [sample_seq_data](../sample_seq_data) and maps them onto imaginary vertical plane. \
     -> In case, one wants to try out a new seq, enter input params after cell "**Initialize Variables Here**".
 
 * **mapToVerticalPlane.py**: \
@@ -39,4 +41,4 @@ A python class for mapping windows to Vertical Plane. The code snippet below sho
 
     ```
 
-    -> Directly run the [main.py](https://github.com/Dhruv2012/Drone-based-building-assessment/tree/resolveNMS/win_det_heatmaps/mapToVerticalPlane/main.py) to visualize results of 3 sample sequences.
+    -> Directly run the [main.py](./main.py) to visualize results of 3 sample sequences.
