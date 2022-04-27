@@ -111,6 +111,7 @@ def vis_eval_result(img, window, plotLine=False, saveFilename=None):
     else:
         cv2.imshow('Vis Evaluation Result', cv_img_patch_show)
         cv2.waitKey(0)
+    return cv_img_patch_show
 
 
 def vis_eval_result_with_gt(img, predWindow, gtWindow, plotLine=False, saveFilename=None):

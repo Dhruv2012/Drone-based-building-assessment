@@ -3,13 +3,16 @@ import logging
 import torch
 import torch.nn as nn
 from torch.nn.parallel.scatter_gather import gather
+import cv2
 
 from common.speedometer import BatchEndParam
 from common_pytorch.dataset.all_dataset import *
 from common_pytorch.common_loss.loss_recorder import LossRecorder
 from common.utility.image_processing_cv import flip
-from common_pytorch.group.tag_group import HeatmapParser, group_corners_on_tags
-
+from common_pytorch.group.tag_group import HeatmapParser, group_corners_on_tags, mapInputForPostProcessing
+from post_processing.postProcess import PostProcess
+from calculateTotalParams.calculateTotalParams import CalculateTotalParams
+import numpy as np
 
 def trainNet(nth_epoch, train_data_loader, network, optimizer, loss_config, loss_func, speedometer=None):
     """
@@ -163,7 +166,7 @@ def evalNet(nth_epoch, heatmaps, tagmaps, valid_data_loader, loss_config, test_c
 def inferNet(infer_data_loader, network, merge_hm_flip_func, merge_tag_flip_func, flip_pairs,
              patch_width, patch_height, loss_config, test_config, final_output_path, flip_test=True):
 
-    print('in valid')
+    print('in infer')
     network.eval()
 
     heatmaps_list = []
@@ -200,20 +203,82 @@ def inferNet(infer_data_loader, network, merge_hm_flip_func, merge_tag_flip_func
     assert num_samples == tagmaps.shape[0]
     assert num_samples == len(imdb_list)
 
+    ### PostProcess Path ###
+    infer_result_path = os.path.dirname(final_output_path)
+    # print(infer_result_path)
+    postProcessOutputPath = infer_result_path + '\post_process_result'
+    if not os.path.exists(postProcessOutputPath):
+        os.makedirs(postProcessOutputPath)
+
     windows_list_with_score = list()
     ############################ Group corners on TAG ##############################
     # 1. Group Corners
     parser = HeatmapParser(loss_config, test_config.useCenter, test_config.centerT, imdb_list)
+
+    ## Final Recorded coords of bounding boxes 
+    recordedCoordsOfEntireSeq = []
+
     for n_s in range(num_samples):
         try:
             group_corners_wz_score = \
                 group_corners_on_tags(n_s, parser, heatmaps[n_s], tagmaps[n_s], patch_width, patch_height,
                                       imdb_list[n_s]['im_width'], imdb_list[n_s]['im_height'],
                                       rectify = test_config.rectify, winScoreThres = test_config.windowT)
+            print('windowScores: ' + str(group_corners_wz_score))
             windows_list_with_score.append(group_corners_wz_score)
+            print('imgPaths:', imdb_list[n_s]['image'])
+            inputImg = cv2.imread(imdb_list[n_s]['image'], 1)
+            modelInferredImg = facade.plotSingleImage(inputImg, 
+                group_corners_wz_score,  final_output_path, n_s)
+
+            final_postProcess_path = os.path.join(postProcessOutputPath, str(n_s) + '.png') 
+            print('group_corners_wz_score:', group_corners_wz_score)
+            print(type(group_corners_wz_score))
+            boundingBoxes = np.empty(shape=(1,4),dtype='object')
+            boundingBoxes[:] = np.nan
+            if group_corners_wz_score:
+                postProcess = PostProcess(modelInferredImg, group_corners_wz_score, final_postProcess_path)
+                boundingBoxes = postProcess.runPostProcessingModule()
+            recordedCoordsOfEntireSeq.append(boundingBoxes)
+
+            # print("windowCount: " + str(len(group_corners_wz_score)))
+            # postProcess = PostProcess(cv2.imread(imdb_list[n_s]['image'], 1), group_corners_wz_score)
+            # postProcess.runPostProcessingModule()
         except Exception as e:
             assert 0, (n_s, e, os.path.basename(imdb_list[n_s]['image']))
-            # print(e, '  ', os.path.basename(imdb_list[n_s]['image']))
+            print(e, '  ', os.path.basename(imdb_list[n_s]['image']))
 
     # 2. Infer or Evaluate
-    facade.plot(windows_list_with_score, imdb_list, final_output_path)
+    # print("windows list:")
+    # print(windows_list_with_score)
+    # imdb_list_1 = facade.plot(windows_list_with_score, imdb_list, final_output_path)
+    
+    # print('DEBUG INPUT PP:', imdb_list)
+    # print('DEBUG imdb_list_1:', imdb_list_1)
+    # print(type(imdb_list))
+
+    # for n_s in range(num_samples):
+    #     group_corners_wz_score = windows_list_with_score[n_s]
+    #     print('windowScores: ' + str(group_corners_wz_score))
+    #     print("windowCount: " + str(len(group_corners_wz_score)))
+    #     print(mapInputForPostProcessing(group_corners_wz_score))
+    #     fileName = str(n_s) + '.png'
+    #     final_postProcess_path = os.path.join(postProcessOutputPath, fileName) 
+    #     print(final_postProcess_path)
+    #     postProcess = PostProcess(imdb_list_1[n_s]['image'], group_corners_wz_score, final_postProcess_path)
+    #     boundingBoxes = postProcess.runPostProcessingModule()
+    #     print(boundingBoxes.shape)
+    #     recordedCoordsOfEntireSeq.append(boundingBoxes)
+
+    print("recordedCoordsOfEntireSeq: ", recordedCoordsOfEntireSeq)
+    ## Height info of sequence in cm
+    # height_info = [160, 240, 330, 500, 580, 660, 730, 740, 910]
+    # calculateTotalParams = CalculateTotalParams(recordedCoordsOfEntireSeq, height_info, 
+    #     loadFilePath = "F:\\IIIT-H Work\\win_det_heatmaps\\rrcServerData\\win_det_heatmaps\\coordinatesFromPostProcessing-1-shufflenet.csv")
+    # calculateTotalParams.runCalculateTotalParamsModule()
+    
+    with open('coordinatesFromPostProcessing-2_new-shufflenet.csv', 'ab') as f:
+        for array in recordedCoordsOfEntireSeq:
+            array = array.ravel()
+            array = array.reshape(-1, array.shape[0])
+            np.savetxt(f, array, delimiter=',')

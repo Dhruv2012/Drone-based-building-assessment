@@ -14,6 +14,7 @@ from .imdb import IMDB
 from common.utility.visualization import debug_vis, vis_eval_result, vis_eval_result_with_gt
 from common.utility.utils import float2int
 from .evaluation import getAp
+import copy
 
 num_corners = 4
 max_num_windows = 100
@@ -288,9 +289,10 @@ class facade(IMDB):
     @staticmethod
     def plot(windows_list, imdb_list, save_path):
         # pre-processing
+        imdb_list_copy = copy.deepcopy(imdb_list)
         ap_pred = []
         for s_idx in range(len(windows_list)):
-            im = imdb_list[s_idx]['image']
+            im = imdb_list_copy[s_idx]['image']
 
             # aggreate pred into list
             winPred = windows_list[s_idx]
@@ -303,4 +305,28 @@ class facade(IMDB):
 
             visFilename = "vis_" + os.path.basename(im)
             visFilename = os.path.join(save_path, visFilename)
-            vis_eval_result(im, winPred, plotLine=True, saveFilename=visFilename)
+            imdb_list_copy[s_idx]['image'] = vis_eval_result(im, winPred, plotLine=True, saveFilename=visFilename)
+        return imdb_list_copy
+
+    @staticmethod
+    def plotSingleImage(img, windows_list, save_path, img_idx):
+        # pre-processing
+        img_copy = np.copy(img)
+        ap_pred = []
+
+        # print("pltSingleImage:", img)
+        # aggreate pred into list
+        winPred = windows_list
+        for i in range(len(winPred)):
+            temp = {}
+            temp['position'] = np.array(winPred[i]['position'])[:, :2].copy()  # 4x2 array
+            temp['img_id'] = img_idx  # index of image
+            temp['score'] = winPred[i]['score']  # confident
+            ap_pred.append(temp)
+
+        visFilename = None
+        if save_path != None:
+            visFilename = "vis_" + str(img_idx) + ".png"
+            visFilename = os.path.join(save_path, visFilename)
+        img_copy = vis_eval_result(img_copy, winPred, plotLine=True, saveFilename=visFilename)
+        return img_copy
