@@ -1,6 +1,4 @@
 # Drone-based-building-assessment
-### Readme Update(In Progress)
-
 ### Project - "Identification of salient structuaral elements from buildings using UAVs"
 The project aims to extract information such as planShape/Area, Storey and window count, their height and so on of the buildings from the camera feed through drone. It is a part of IHub - Mobility Research at IIIT Hyderabad.
 
@@ -30,6 +28,10 @@ For plan-shape/area (The ground truths are segmented masks in white)
 Please find our current progress in the following presentation.
 <a href="https://docs.google.com/presentation/d/1Oj5h2Y_G0Geoxrf7Ti8xwFlPiwgsrAcYaunN2R8y6zE/edit?usp=sharing" target="_blank">Presentation Link</a>
 
+
+### Directory Structure:
+**win_det_heatmaps:** It contains estimation of window/storey parameters(window detection and post_processing module, window/storey count, storey heights). \
+**planShape:** Contains Semantic segmentation and area calculation of roof-tops. \
 
 ### Window detection
 <p align="center"><img src="readme_images/17.png" width="200" height="150"/></p>
