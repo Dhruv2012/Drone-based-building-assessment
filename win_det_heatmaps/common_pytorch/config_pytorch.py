@@ -22,6 +22,7 @@ def parse_args():
     parser.add_argument('--out', help='/path/to/output', default='.', type=str)
     parser.add_argument('--infer', help='/path/to/image/folder', type=str)
     parser.add_argument('--autoresume', help='auto resume from ckpt', default=True, type=str2bool)
+    parser.add_argument('--output_windowCoords_csvFile', help='output csv file name which stores window coordinates after post-processing', default='windowcoords_postprocessing.csv', type=str)
 
     args, rest = parser.parse_known_args()
     return args

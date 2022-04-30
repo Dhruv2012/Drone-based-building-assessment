@@ -81,7 +81,7 @@ def main():
 
     beginT = time.time()
     inferNet(infer_data_loader, net, merge_hm_flip_func, merge_tag_flip_func, flip_pairs,
-             config.train.patch_width, config.train.patch_height, config.loss, config.test, output_path)
+             config.train.patch_width, config.train.patch_height, config.loss, config.test, output_path, s_args.output_windowCoords_csvFile)
     endt = time.time() - beginT
     logger.info('Speed: %.3f second per image' % (endt / len(infer_imdbs)))
     logger.info("Save inference results into %s"%output_path)

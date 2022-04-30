@@ -31,7 +31,7 @@ Please find our current progress in the following presentation.
 
 ### Directory Structure:
 **win_det_heatmaps:** It contains estimation of window/storey parameters(window detection and post_processing module, window/storey count, storey heights). \
-**planShape:** Contains Semantic segmentation and area calculation of roof-tops. \
+**planShape:** Contains Semantic segmentation and area calculation of roof-tops.
 
 ### Window detection
 <p align="center"><img src="readme_images/17.png" width="200" height="150"/></p>
