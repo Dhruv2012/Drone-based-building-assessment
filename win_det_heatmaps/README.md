@@ -45,4 +45,6 @@ python infer.py --cfg /path/to/yaml/config \
                 --model /path/to/model \
                 --infer /path/to/image/directory
 ```
-
+-> This generates 2 dirs: **infer_result** and **post_process_result**. \
+**infer_result**: Results from model inference. \
+**post_process_result**: Results from post-processing module. We also output a CSV file containing window coordinates of all windows(of each image) of a sequence. 
