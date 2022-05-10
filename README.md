@@ -1,5 +1,5 @@
 # Drone-based-building-assessment
-### Project - "Identification of salient structuaral elements from buildings using UAVs"
+### Project - "Identification of salient structural elements from buildings using UAVs"
 The project aims to extract information such as planShape/Area, Storey and window count, their height and so on of the buildings from the camera feed through drone. It is a part of IHub - Mobility Research at IIIT Hyderabad.
 
 #### Objectives of Pilot Study:

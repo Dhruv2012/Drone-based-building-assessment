@@ -8,7 +8,8 @@ This dir contains training/testing/inference scripts for window detection, Templ
 ## Directories
 
 **sample_seq_data**: 3 sample vertical sequences of a building. Contains images, log file and CSV file(window coordinates obtained from post_processing module). \
-**post_processing**: Entire Post-processing module based on template matching and Non-maxima suppression(NMS). Detects windows through template matching where the model fails and removes multiple instances through NMS. This is called during model inference and a CSV file containing window coordinates is generated.\
+**post_processing**: Entire Post-processing module based on template matching and Non-maxima suppression(NMS). Detects windows through template matching where the model fails and removes multiple instances through NMS. This is called during model inference (infer.py) and a CSV file containing window coordinates is generated.\
+**mapToVerticalPlane**: Contains python class to map windows to a dummy vertical Plane. Also contains scripts and jupyter notebook on running it.\
 **templateMatching**: Contains jupyter nb of Template Matching module showing all intermediate results. \
 **recordedWindowCoordinates**: CSV Files(containing window coordinates) of different sequences generated from post-processing module.
 

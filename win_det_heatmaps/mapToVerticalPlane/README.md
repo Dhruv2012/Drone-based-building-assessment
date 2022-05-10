@@ -2,7 +2,8 @@
 <p align="center"><img src="windows_mapped_on_plane.png" width="70%" height="40%"/></p>
 
 ### Sample Data
--> Sample data of 3 seqs is provided in [sample_seq_data](../sample_seq_data). It contains images, log files and CSV File(containing window coordinates obtained from post-processing module).
+-> Sample data of 3 seqs is provided in [sample_seq_data](../sample_seq_data). It contains images, log files and CSV File(containing window coordinates obtained from post-processing module).\
+NOTE: The code accepts the log file in a specific format. Please checkout [sample_seq_data](../sample_seq_data) for the format.
 
 ### How to run?
 
