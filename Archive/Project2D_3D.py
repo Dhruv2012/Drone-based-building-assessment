@@ -1,3 +1,8 @@
+# Test it on both point clouds to check for consistency 
+# check ground truth from google maps
+
+
+
 """
 Projects selected 2D points from image to 3D world.
 
@@ -18,31 +23,32 @@ Project: Building Inspection using Drones - IIITH
 
 from Helper import * # Later, we can expand this class to be a wrapper around our pipeline.
 import open3d as o3d
-
+import pyransac3d as pyr
 # datasetPath = "../data/"
-datasetPath = ""
+datasetPath = "/home/kushagra/IIIT-H/FromTopVideos/DJI_0378/images/"
 # datasetPath = r"F:\IIIT-H Work\win_det_heatmaps\rrcServerData\planShape\serverData\LEDNet\save\DJI_0166_400\val"
 # ResultsPath = "../Results/"
-ResultsPath = "./Results/"
-imageName = "00063.jpg" # This image covers three intersecting edge very well
-# imagename = r"\DJI_0166_00063.png"
+ResultsPath = "/home/kushagra/IIIT-H/FromTopVideos/DJI_0378/images/"
+imageName = "19.jpg" # This image covers three intersecting edge very well
+imagename = "00018_segmented.png"
 # imageName_1 = "00064.jpg" # This image covers three intersecting edge very well
 # imagename_1 = r"\DJI_0166_00064.png"
 images_txt_path = "images.txt"
-
+imag = cv2.imread(ResultsPath+imageName)
+print(imag.shape)
 
 # Data structure to store all information using Pandas dataframe
 df = pd.DataFrame({'ImageName', 'R', 't', '2D', '3D'})
 
 
 # Debugging with one image only
-R, t, _ = ReadCameraOrientation(ResultsPath+images_txt_path, False, None, imageName)
+R, t, _, _ = ReadCameraOrientation(ResultsPath+images_txt_path, False, None, imageName)
 print(R, t)
 # R_1, t_1, _ = ReadCameraOrientation(ResultsPath+images_txt_path, False, None, imageName_1)
 # print(R_1, t_1)
 
-# List2D = SelectPointsInImage(datasetPath+imagename)
-List2D = Get2DCoordsFromSegMask(cv2.imread(datasetPath+imageName))
+List2D = SelectPointsInImage(ResultsPath+imageName)
+# List2D = Get2DCoordsFromSegMask(cv2.imread(datasetPath+imagename))
 List2D_H = MakeHomogeneousCoordinates(List2D)
 print(List2D)
 print(List2D_H)
@@ -60,18 +66,27 @@ drone_k = np.array([[1534.66,0,960],[0,1534.66,540],[0,0,1]]) # later make funct
 d = 100
 List3D = Get3Dfrom2D(List2D, drone_k, R, t, d)
 print('3D Points: ', len(List3D))
+
+Array3d = np.empty((len(List3D),3))
+for p in range(len(List3D)):
+	Array3d[p,:] = List3D[p].reshape(1,3)
+print(Array3d.shape)
+plane1 = pyr.Plane()
+best_eq, best_inliers = plane1.fit(Array3d, 0.01)
+print(best_eq)
 # List3D_1 = Get3Dfrom2D(List2D_1, drone_k, R_1, t_1, d)
 # print('3D Points: ', len(List3D_1))
 
 # Plot 3D points in matplotlib
-ax = plt.axes(projection='3d')
+# ax = plt.axes(projection='3d')
 
-for p in List3D:
-	ax.scatter(p[2], -p[1], p[0], s=50.0, color='r')
-	# plt.pause(0.1)
-# for p_1 in List3D_1:
-	# ax.scatter(p_1[2], -p_1[1], p_1[0], s=50.0, color='g')
-plt.show()
+# for p in List3D:
+# 	ax.scatter(p[2], -p[1], p[0], s=50.0, color='r')
+# 	# plt.pause(0.1)
+# # for p_1 in List3D_1:
+# 	# ax.scatter(p_1[2], -p_1[1], p_1[0], s=50.0, color='g')
+# plt.show()
+
 
 '''
 pcd = o3d.geometry.PointCloud()
