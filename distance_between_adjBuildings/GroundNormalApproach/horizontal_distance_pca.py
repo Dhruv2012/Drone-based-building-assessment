@@ -1,3 +1,4 @@
+import numpy
 import open3d as o3d
 import numpy as np
 import matplotlib.pyplot as plt
@@ -18,7 +19,7 @@ class ConditionalRANSAC:
         self.inliers = []
         self.equation = []
 
-    def fit(self, pts, ground_plane_normal = None, thresh=0.05, minPoints=100, maxIteration=1000):
+    def fit(self, pts, ground_plane_normal=None, thresh=0.05, minPoints=1000, maxIteration=1000):
         """
         Find the best equation for a plane.
         :param pts: 3D point cloud as a `np.array (N,3)`.
@@ -61,8 +62,8 @@ class ConditionalRANSAC:
             # https://mathworld.wolfram.com/Point-PlaneDistance.html
             pt_id_inliers = []  # list of inliers ids
             dist_pt = (
-                plane_eq[0] * pts[:, 0] + plane_eq[1] * pts[:, 1] + plane_eq[2] * pts[:, 2] + plane_eq[3]
-            ) / np.sqrt(plane_eq[0] ** 2 + plane_eq[1] ** 2 + plane_eq[2] ** 2)
+                              plane_eq[0] * pts[:, 0] + plane_eq[1] * pts[:, 1] + plane_eq[2] * pts[:, 2] + plane_eq[3]
+                      ) / np.sqrt(plane_eq[0] ** 2 + plane_eq[1] ** 2 + plane_eq[2] ** 2)
 
             # Select indexes where distance is biggers than the threshold
             pt_id_inliers = np.where(np.abs(dist_pt) <= thresh)[0]
@@ -114,7 +115,8 @@ def horizontal_distance_using_pca(ply_file):
     print('0 and 2:', np.dot(eigen_vectors[:, 0], (eigen_vectors[:, 2])))
 
     # To plot eigen vectors in open3d
-    points = [[0, 0, 0], list(sorted_eigen_vectors[:, 0]), list(sorted_eigen_vectors[:, 1]), list(sorted_eigen_vectors[:, 2])]
+    points = [[0, 0, 0], list(sorted_eigen_vectors[:, 0]), list(sorted_eigen_vectors[:, 1]),
+              list(sorted_eigen_vectors[:, 2])]
     lines = [[0, 1], [0, 2], [0, 3]]
     # colors = [[1, 0, 0] for i in range(len(lines))]
     colors = [[1, 0, 0], [0, 1, 0], [0, 1, 1]]
@@ -125,12 +127,11 @@ def horizontal_distance_using_pca(ply_file):
 
     # Visualize the point cloud
     # cloud = o3d.geometry.PointCloud(PointCloud=cloud, LineSet=line_set)
-    o3d.visualization.draw_geometries([cloud_down , line_set ], window_name="Original Cloud",
-                                  width=1080, height=760, zoom=0.1412,
-                                  front=[0.1, -0.2125, -0.9795],
-                                  lookat=[2.6172, 0.0475, 1.532],
-                                  up=[-0.0694, -2.9768, 0.2024],)
-
+    o3d.visualization.draw_geometries([cloud_down, line_set], window_name="Original Cloud",
+                                      width=1080, height=760, zoom=0.1412,
+                                      front=[0.1, -0.2125, -0.9795],
+                                      lookat=[2.6172, 0.0475, 1.532],
+                                      up=[-0.0694, -2.9768, 0.2024], )
 
     # points = [[0,0,0], list(sorted_eigen_vectors[:, 2])]
     # lines = [[0, 1]]
@@ -147,17 +148,18 @@ def horizontal_distance_using_pca(ply_file):
     ## clustering point cloud using DBSCAN
     # cluster_pointcloud(cloud_down)
     # leftBuilding, rightBuilding = cluster_dummy(cloud_down)
-    
+
     ## segment plane RANSAC
     # segment_plane_RANSAC(leftBuilding)
     # segment_plane_RANSAC(rightBuilding)
     # segment_plane_RANSAC(cloud_down)
     return new_points, eigen_values, eigen_vectors
 
-def estimate_verticalPlanes(ply_file):
+
+def estimate_verticalPlanes(ply_file, ground_normal):
     cloud = o3d.io.read_point_cloud(ply_file)
     print('Points before voxel downsampling', np.array(cloud.points).shape[0])
-    
+
     # _, indices = cloud.remove_statistical_outlier(nb_neighbors=100, std_ratio=0.1)
     # cloud_down = cloud.select_by_index(indices)
 
@@ -165,15 +167,14 @@ def estimate_verticalPlanes(ply_file):
     cloud_down = cloud
     print('Points after voxel downsampling', np.array(cloud_down.points).shape[0])
 
-
     ## clustering point cloud using DBSCAN
     # cluster_pointcloud(cloud_down)
     leftBuilding, rightBuilding = cluster_dummy(cloud_down)
 
     ## segment plane RANSAC
-    leftBuildingPlaneModel, _ = segment_plane_RANSAC(leftBuilding)
+    leftBuildingPlaneModel, _ = segment_plane_RANSAC(leftBuilding, ground_normal)
     print('leftBuildingPlaneModel: {}'.format(leftBuildingPlaneModel))
-    rightBuildingPlaneModel, _ = segment_plane_RANSAC(rightBuilding)
+    rightBuildingPlaneModel, _ = segment_plane_RANSAC(rightBuilding, ground_normal)
     print('rightBuildingPlaneModel: {}'.format(rightBuildingPlaneModel))
     # segment_plane_RANSAC(cloud_down)
 
@@ -189,31 +190,33 @@ def estimate_verticalPlanes(ply_file):
     print('leftBMax {} rightBMax {}'.format(leftBMaxAbs, rightBMaxAbs))
     print('After flipping sign')
     if leftBIndex != rightBIndex:
-        leftBArr = -1.00*leftBArr
+        leftBArr = -1.00 * leftBArr
         print('leftBuildingPlaneModel: {}'.format(leftBArr))
     elif leftBIndex == rightBIndex:
         leftBMax = leftBArr[leftBIndex]
         rightBMax = rightBArr[rightBIndex]
         if (leftBMax > 0 and rightBMax < 0) or (leftBMax < 0 and rightBMax > 0):
-            leftBArr = -1.00*leftBArr
+            leftBArr = -1.00 * leftBArr
             print('leftBuildingPlaneModel: {}'.format(leftBArr))
 
     ## distance between 2 planes
     d1 = leftBArr[3]
     d2 = rightBArr[3]
 
-    a,b,c,_ = np.mean([leftBArr, rightBArr], axis=0)
-    print('a {} b {} c {}'.format(a,b,c))
-    dist_between_buildings = abs((d2 -d1)/(a**2 + b**2 + c**2)** 0.5)
+    a, b, c, _ = np.mean([leftBArr, rightBArr], axis=0)
+    print('a {} b {} c {}'.format(a, b, c))
+    dist_between_buildings = abs((d2 - d1) / (a ** 2 + b ** 2 + c ** 2) ** 0.5)
     print('Dist between 2 buildings is: {} mesh units'.format(dist_between_buildings))
+    return dist_between_buildings
+
 
 def cluster_dummy(cloud):
     points = np.array(cloud.points)
     # leftBuildingIndices = np.where(points[:, 2] < 0)
     # rightBuildingIndices = np.where(points[:, 2] > 0)
-    leftBuildingPoints = points[points[:,0] < 0]
+    leftBuildingPoints = points[points[:, 0] < 0]
     # print('points shape:', leftBuildingPoints.shape)
-    rightBuildingPoints = points[points[:,0] > 0]
+    rightBuildingPoints = points[points[:, 0] > 0]
 
     leftBuilding = o3d.geometry.PointCloud()
     leftBuilding.points = o3d.utility.Vector3dVector(leftBuildingPoints)
@@ -221,18 +224,19 @@ def cluster_dummy(cloud):
 
     rightBuilding = o3d.geometry.PointCloud()
     rightBuilding.points = o3d.utility.Vector3dVector(rightBuildingPoints)
-    rightBuilding.paint_uniform_color([0,0,1])
+    rightBuilding.paint_uniform_color([0, 0, 1])
 
-    o3d.visualization.draw_geometries([ leftBuilding, rightBuilding ],
+    o3d.visualization.draw_geometries([leftBuilding, rightBuilding],
                                       width=1080, height=760, zoom=0.1412,
                                       front=[0.4257, -0.2125, -0.8795],
                                       lookat=[2.6172, 2.0475, 1.532],
                                       up=[-0.0694, -0.9768, 0.2024])
     return leftBuilding, rightBuilding
 
+
 def cluster_pointcloud(cloud):
     with o3d.utility.VerbosityContextManager(
-        o3d.utility.VerbosityLevel.Debug) as cm:
+            o3d.utility.VerbosityLevel.Debug) as cm:
         labels = np.array(
             cloud.cluster_dbscan(eps=0.005, min_points=100, print_progress=True))
 
@@ -242,29 +246,29 @@ def cluster_pointcloud(cloud):
     colors[labels < 0] = 0
     cloud.colors = o3d.utility.Vector3dVector(colors[:, :3])
     o3d.visualization.draw_geometries([cloud],
-                                    zoom=0.455,
-                                    front=[-0.4999, -0.1659, -0.8499],
-                                    lookat=[2.1813, 2.0619, 2.0999],
-                                    up=[0.1204, -0.9852, 0.1215])
+                                      zoom=0.455,
+                                      front=[-0.4999, -0.1659, -0.8499],
+                                      lookat=[2.1813, 2.0619, 2.0999],
+                                      up=[0.1204, -0.9852, 0.1215])
+
 
 def cluster_pointcloud_KMeans(cloud):
-
-    kmeans = KMeans(n_clusters = 2, random_state = 0)
+    kmeans = KMeans(n_clusters=2, random_state=0)
     clusters = kmeans.fit_predict(cloud.points)
     print('cluster shape:', kmeans.cluster_centers_.shape)
-    fig, ax = plt.subplots(1, 2, figsize = (8, 3))
+    fig, ax = plt.subplots(1, 2, figsize=(8, 3))
     centers = kmeans.cluster_centers_.reshape(2, 3, 1)
     for axi, center in zip(ax.flat, centers):
-        axi.set(xticks=[], yticks = [])
-        axi.imshow(center, interpolation = 'nearest', cmap = plt.cm.binary)
+        axi.set(xticks=[], yticks=[])
+        axi.imshow(center, interpolation='nearest', cmap=plt.cm.binary)
 
-def segment_plane_RANSAC(cloud):
 
+def segment_plane_RANSAC(cloud, ground_normal):
     # Ground Plane Normal: -0.01, 0.62, 0.78
     cRANSAC = ConditionalRANSAC()
-    plane_model, inliers = cRANSAC.fit(np.array(cloud.points), ground_plane_normal = [-0.01, 0.62, 0.78], thresh=0.01,
-                                        minPoints=3000,
-                                        maxIteration=1000)
+    plane_model, inliers = cRANSAC.fit(np.array(cloud.points), ground_plane_normal=ground_normal, thresh=0.01,
+                                       minPoints=5000,
+                                       maxIteration=500)
     '''
     plane_model, inliers = cloud.segment_plane(distance_threshold=0.01,
                                          ransac_n=3000,
@@ -277,12 +281,13 @@ def segment_plane_RANSAC(cloud):
     inlier_cloud.paint_uniform_color([1.0, 0, 0])
     outlier_cloud = cloud.select_by_index(inliers, invert=True)
     o3d.visualization.draw_geometries([inlier_cloud, outlier_cloud],
-                                    zoom=0.8,
-                                    front=[-0.4999, -0.1659, -0.8499],
-                                    lookat=[2.1813, 2.0619, 2.0999],
-                                    up=[0.1204, -0.9852, 0.1215])
-    
+                                      zoom=0.8,
+                                      front=[-0.4999, -0.1659, -0.8499],
+                                      lookat=[2.1813, 2.0619, 2.0999],
+                                      up=[0.1204, -0.9852, 0.1215])
+
     return plane_model, inliers
+
 
 def plot_data(eigenvectors, points):
     # Plotting eigenvectors in matplotlib
@@ -310,9 +315,35 @@ def plot_data(eigenvectors, points):
     ax1.scatter(x, y, z, marker='o')
     plt.show()
 
+def scale_calculation(ply_file):
+
+    #From dataset DJI_0243
+    #00001.jpg (Ground plane) -  0.037342 -2.13764 1.73608
+    #00099.jpg (15m height) - -0.0706908 0.597046 1.7482
+    #00080.jpg (15m height) -  -0.0696913 0.596447 1.76543
+    scale = 1
+
+    if ply_file == "DJI_0243.ply":
+        diff = abs(-2.13764 - 0.597046)
+        scale = 15/diff
+
+    elif ply_file == "DJI_0226.ply":
+        points = o3d.io.read_point_cloud(ply_file)
+        points_array = numpy.asarray(points.points).T
+        s1 = points_array.min(axis=1)[1]
+        s2 = -2.85210
+        scale = 15/abs(s1-s2)
+
+    # elif ply_file == "DJI_0378.ply":
+    #     scale = 2.5
+    return scale
+
 
 if __name__ == "__main__":
-    ply_file = "./sample_data/DJI_0226.ply"
-    estimate_verticalPlanes(ply_file)
+    ply_file = "DJI_0378.ply"
+    ground_normal = [-0.07346979558651287, -0.09468736980492064, 0.9927922698812185]
+    mesh_distance = estimate_verticalPlanes(ply_file, ground_normal)
+    # scale = scale_calculation(ply_file)
+    # print("Distance between the buildings:", scale*mesh_distance)
     # points, eigen_values, eigen_vectors = horizontal_distance_using_pca(ply_file)
     # plot_data(eigen_vectors, points)
