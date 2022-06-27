@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 def skew_symmetric(v):
 
@@ -77,3 +78,9 @@ class Quaternion():
         elif out=='Quaternion':
             prod=Quaternion(prod_np[0],prod_np[1],prod_np[2],prod_np[3])
             return prod
+
+def ORBReader(file_path):
+    
+    column_names = ['time', 'x', 'y', 'z', 'qx', 'qy', 'qz', 'qw']
+    data = pd.read_csv(file_path, sep=' ', names=column_names)
+    return data
