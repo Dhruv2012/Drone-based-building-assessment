@@ -113,10 +113,10 @@ class AdjacentRoofDistance:
         points = np.array(self.cloud.points)
 
         #CLUSTERING ALONG X-AXIS(z-axis is along the camera outward normal)
-        newpoints=points[points[:,1]>-2.5]
-        newpoints=newpoints[newpoints[:,1]<4.5]
-        leftBuildingPoints=newpoints[newpoints[:,0]<0]
-        rightBuildingPoints=newpoints[newpoints[:,0]>0]
+        # newpoints=points[points[:,1]>-2.5]
+        # newpoints=newpoints[newpoints[:,1]<4.5]
+        leftBuildingPoints=points[points[:,1]<0]
+        rightBuildingPoints=points[points[:,1]>0]
 
         leftBuilding = o3d.geometry.PointCloud()
         leftBuilding.points = o3d.utility.Vector3dVector(leftBuildingPoints)
@@ -131,7 +131,7 @@ class AdjacentRoofDistance:
         return leftBuilding, rightBuilding
     
     def find_dist(self,l1,l2):
-        dist = np.sqrt(((l1[0]-l2[0])**2 + (l1[1]-l1[1])**2 + (l1[2]-l2[2])**2))
+        dist = np.sqrt(((l1[0]-l2[0])**2 + (l1[1]-l2[1])**2 + (l1[2]-l2[2])**2))
         return dist 
     
     def getBuildings(self,cloud,k,l,a):
@@ -144,6 +144,8 @@ class AdjacentRoofDistance:
             new_cloud = o3d.geometry.PointCloud()
             new_cloud.points = o3d.utility.Vector3dVector(newcloud)
             new_cloud.paint_uniform_color([0,0,1])
+            print("here",(l+(i+1)*a),(l+(i)*a))
+            print(newcloud.shape)
 
             p_model, inlier, cloud1 = self.segment_plane_RANSAC(new_cloud)
             model.append(p_model)
@@ -160,27 +162,29 @@ class AdjacentRoofDistance:
                 max = inliers[i].shape[0]
                 index = i
         return index
-    
-    def selectPoints(self,cloud,m,yl,ya,offset,index,str):
+
+    def selectPoints(self,cloud,m,xl,xa,offset,index,str):
         listtruepose=[]
         for i in range(m):
         
-            y= yl+ya*i
+            x= xl+xa*i
             mypoints=np.array(cloud[index].points)
             truepoints=np.array(cloud[index].points)
-            mypoints = mypoints[mypoints[:,1]>(y-offset)]
-            mypoints = mypoints[mypoints[:,1]<(y+offset)]
-            mymin = mypoints[0,0]
+            mypoints = mypoints[mypoints[:,0]>(x-offset)]
+            mypoints = mypoints[mypoints[:,0]<(x+offset)]
+            mymin = mypoints[0,1]
             posmin = 0
 
             for i in range(mypoints.shape[0]):
-                if str == "Left":
-                    if(mypoints[i,0]>mymin):
-                        mymin=mypoints[i,0]
+                if str == "Right":
+                    # print("True")
+                    if(mypoints[i,1]<mymin):
+                        mymin=mypoints[i,1]
                         posmin=i
-                else:
-                    if(mypoints[i,0]<mymin):
-                        mymin=mypoints[i,0]
+                elif str == "Left":
+                    # print("True Left")
+                    if(mypoints[i,1]>mymin):
+                        mymin=mypoints[i,1]
                         posmin=i
 
             truepos=0
@@ -192,21 +196,61 @@ class AdjacentRoofDistance:
             listtruepose.append(truepos)
         return listtruepose
 
-          
+    def findZRange(self,cloud):
+        points = np.array(cloud.points)
+        z_coord=points[:,2]
+        min = np.min(z_coord)
+        max = np.max(z_coord)
+        return min,max
+        
     def EstimateDistanceAdjacentBuildings(self):
         # TODO: Need to modularize these parameters
-        k=8;l=2.5;h=4.5;a=(h-l)/k
-        k2=10;l2=2.0;h2=4.5;a2=(h2-l2)/k2
+
+        
+        k=8;l=2.5;h=4.25;a=(h-l)/k
+        k2=12;l2=1.9;h2=4.5;a2=(h2-l2)/k2
+
+        axes = o3d.geometry.LineSet()
+        axes.points = o3d.utility.Vector3dVector([[0,0,0],[0,0,100],[0,100,0],[100,0,0]])
+        axes.lines = o3d.utility.Vector2iVector([[0,1],[0,2],[0,3]])
+        axes.colors = o3d.utility.Vector3dVector([[0,0,1],[0,1,0],[1,0,0]])
 
         self.cloud = o3d.io.read_point_cloud(self.ply_file)
-
+        # self.cloud.paint_uniform_color([0,0,1])
+        o3d.visualization.draw_geometries([self.cloud, axes],
+                                        zoom=0.8,
+                                        front=[-0.4999, -0.1659, -0.8499],
+                                        lookat=[2.1813, 2.0619, 2.0999],
+                                        up=[0.1204, -0.9852, 0.1215])
+        
+        # print("Hello")
+        # clean_cloud, _ = self.cloud.remove_radius_outlier(nb_points=15, radius=0.375)
+        # Print("World")
+        # clean_cloud.paint_uniform_color([0,1,0])
+        # o3d.visualization.draw_geometries([clean_cloud],
+        #                                 zoom=0.8,
+        #                                 front=[-0.4999, -0.1659, -0.8499],
+        #                                 lookat=[2.1813, 2.0619, 2.0999],
+        #                                 up=[0.1204, -0.9852, 0.1215])
+        # exit()
+        # self.cloud = clean_cloud
         # If downsampling required:
         # cloud_down = self.cloud.voxel_down_sample(voxel_size=0.1)
 
         leftBuilding, rightBuilding = self.ClusterAlongXaxis(self.cloud)
         leftBuildingpts=np.array(leftBuilding.points)
         rightBuildingpts=np.array(rightBuilding.points)
-
+        o3d.visualization.draw_geometries([leftBuilding,rightBuilding, axes],
+                                        zoom=0.8,
+                                        front=[-0.4999, -0.1659, -0.8499],
+                                        lookat=[2.1813, 2.0619, 2.0999],
+                                        up=[0.1204, -0.9852, 0.1215])
+        
+        l, h = self.findZRange(leftBuilding)
+        l = 2.7
+        l2, h2 = self.findZRange(rightBuilding)
+        # print(l,h,l2,h2)
+        # exit()
         # OBTAINING THE LEFT AND RIGHT BUILDINGS SEGMENTED IN Z-AXIS
         self.Leftmodels,self.Leftinliers,self.Leftclouds = self.getBuildings(leftBuildingpts,k,l,a)
         self.Rightmodels,self.Rightinliers,self.Rightclouds = self.getBuildings(rightBuildingpts,k2,l2,a2)
@@ -221,10 +265,11 @@ class AdjacentRoofDistance:
         iLeft = self.getRoof(self.Leftinliers,k)
 
         # TODO: Need to modularize these parameters
-        m=4;yl=-1.5;yh=1.0;ya=yh-yl/4;offset=0.05
+        m=4;yl=-4.5;yh=1.3;ya=yh-yl/4;offset=0.05
 
         # Obtaining the points b/w which the distance is to be measured
         listtrueposR = self.selectPoints(self.Rightclouds,m,yl,ya,offset,iRight,"Right")
+        
         listtrueposL = self.selectPoints(self.Leftclouds,m,yl,ya,offset,iLeft,"Left")
 
         # Visualization and storing the distance b/w points on adjacent buildings
@@ -254,9 +299,28 @@ class AdjacentRoofDistance:
         distlist=[]
         for i in range(4):
             dist = self.find_dist(linepoints[(2*i)],linepoints[(2*i+1)])
+            print("The points are:", linepoints[(2*i)],linepoints[(2*i+1)] , "with dist",dist)
+            # lines=[[2*i,2*i+1]]
+            # lineset=o3d.geometry.LineSet()
+            # lineset.points = o3d.utility.Vector3dVector(linepoints)
+            # lineset.lines = o3d.utility.Vector2iVector(lines)
+            # lineset.paint_uniform_color([1,0,0])
+            # o3d.visualization.draw_geometries([self.Rightclouds[iRight],self.Leftclouds[iLeft], lineset, axes],
+            #                 zoom=0.8,
+            #                 front=[-0.4999, -0.1659, -0.8499],
+            #                 lookat=[2.1813, 2.0619, 2.0999],
+            #                 up=[0.1204, -0.9852, 0.1215])
             distlist.append(dist*self.scale)
-        
-        o3d.visualization.draw_geometries([self.Rightclouds[iRight],self.Leftclouds[iLeft], lineset],
+
+            a = linepoints[(2*i+1)][0]-linepoints[(2*i)][0]
+            b = linepoints[(2*i+1)][1] - linepoints[(2*i)][1]
+            c = linepoints[(2*i+1)][2] - linepoints[(2*i)][2]
+            x1 = linepoints[(2*i+1)][0]
+            y1 = linepoints[(2*i+1)][1]
+            z1 = linepoints[(2*i+1)][2]
+            print("equation: (x - %5.2f)/%5.2f = (y - %5.2f)/%5.2f =(z-%5.2f)/%5.2f" % (x1,a,y1,b,z1,c))
+            print()
+        o3d.visualization.draw_geometries([self.Rightclouds[iRight],self.Leftclouds[iLeft], lineset, axes],
                             zoom=0.8,
                             front=[-0.4999, -0.1659, -0.8499],
                             lookat=[2.1813, 2.0619, 2.0999],
@@ -264,9 +328,23 @@ class AdjacentRoofDistance:
         return distlist
         
 if __name__ == "__main__":
-    scale = 7.75
-    ply_file = "/home/kuromadoshi/IIITH/workspace/ws1/dense/0/fused.ply"
+    scale = 5.78
+    ply_file = "/home/kuromadoshi/IIITH/DistanceModuleDatasets/FromTopView/DJI_0602/dense/0/fused.ply"
     obj = AdjacentRoofDistance(ply_file,scale)
     list=[]
     list = obj.EstimateDistanceAdjacentBuildings()
     print(list[0],list[1],list[2],list[3])
+
+
+
+
+        
+        
+
+        
+
+        
+        
+
+    
+

@@ -132,7 +132,7 @@ class AdjacentRoofDistance:
         return leftBuilding, rightBuilding
     
     def find_dist(self,l1,l2):
-        dist = np.sqrt(((l1[0]-l2[0])**2 + (l1[1]-l1[1])**2 + (l1[2]-l2[2])**2))
+        dist = np.sqrt(((l1[0]-l2[0])**2 + (l1[1]-l2[1])**2 + (l1[2]-l2[2])**2))
         return dist 
     
     def getBuildings(self,cloud,k,l,a):
@@ -140,9 +140,11 @@ class AdjacentRoofDistance:
         model=[]
         modelinlier=[]
         modelcloud = []
+        import math
+        theta = np.radians(-45.00)
         for i in range(k):
-            newcloud = cloud[(cloud[:,2]<(l+(i+1)*a))]
-            newcloud = newcloud[(newcloud[:,2]>(l+i*a))] ##Correct in original code as well
+            newcloud = cloud[((math.cos(theta)*cloud[:,2] - math.sin(theta)*cloud[:,1])<(l+(i+1)*a))]
+            newcloud = newcloud[((math.cos(theta)*newcloud[:,2]- math.sin(theta)*newcloud[:,1])>(l+i*a))] ##Correct in original code as well
             print("vals =",(l+i*a), (l+(i+1)*a) )
             print("Here->",(l+i*a), newcloud.shape[0])
             # continue
@@ -199,7 +201,7 @@ class AdjacentRoofDistance:
           
     def EstimateDistanceAdjacentBuildings(self):
         # TODO: Need to modularize these parameters
-        k=12;l=9.0;h=12.25;a=(h-l)/k
+        k=12;l=9.25;h=12.25;a=(h-l)/k
         k2=10;l2=2.0;h2=4.5;a2=(h2-l2)/k2
 
         self.cloud = o3d.io.read_point_cloud(self.ply_file)
@@ -317,7 +319,7 @@ class AdjacentRoofDistance:
         
 if __name__ == "__main__":
     scale = 7.75
-    ply_file = "/home/aditya/IIIT-H/dataset/DJI_0599/dense/0/fused.ply"
+    ply_file = "/home/kuromadoshi/IIITH/DistanceModuleDatasets/FrontalView/DJI_0599/dense/0/fused.ply"
     obj = AdjacentRoofDistance(ply_file,scale)
     list=[]
     list = obj.EstimateDistanceAdjacentBuildings()
