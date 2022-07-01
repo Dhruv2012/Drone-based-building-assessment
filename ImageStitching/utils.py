@@ -84,21 +84,21 @@ class Quaternion():
 
 def ORBReader(file_path):
     
-    column_names = ['time', 'x', 'y', 'z', 'qx', 'qy', 'qz', 'qw']
+    column_names = ['time', 'x_orb', 'y_orb', 'z_orb', 'qx_orb', 'qy_orb', 'qz_orb', 'qw_orb']
     data = pd.read_csv(file_path, sep=' ', names=column_names)
     return data
 
-def GetScale(prev_coords, current_cords):
+def GetGlobalDistance(prev_coords, current_cords):
 
     #Input:
     #prev_coords = (prev_lat, prev_lon)
     #current_cords = (current_lat, current_lon)
 
     #Output:
-    #scale = distance traveled in meters
+    #dist = global distance traveled in meters
 
-    scale = abs(geopy.distance.distance(prev_coords, current_cords).m)
-    return scale
+    dist = abs(geopy.distance.distance(prev_coords, current_cords).m)
+    return dist
 
 def GetTransformationMatrix(translation, quaternion, scale):
     
@@ -118,36 +118,66 @@ def GetTransformationMatrix(translation, quaternion, scale):
 
     return transformation_matrix
 
+def Combinelogs(flight_log, orb_log):
 
+    #Converting flight logs time from seconds to miliseconds
+    flight_log['time'] = flight_log['time']/1000
+    combined_log = pd.merge(flight_log, orb_log, on='time')
 
-def GetHomographyData(orb_data,log_data):
+    return combined_log
+
+def GetHomographyData(combined_logs):
     
     transformation_matrices={}
 
     #Adding reference frame data
-    ref_translation = [orb_data['x'][0], orb_data['y'][0], orb_data['z'][0]]
-    ref_quat = [orb_data['qw'][0], orb_data['qx'][0], orb_data['qy'][0], orb_data['qz'][0]]
+    ref_translation = [combined_logs['x_orb'][0], combined_logs['y_orb'][0], combined_logs['z_orb'][0]]
+    ref_quat = [combined_logs['qw_orb'][0], combined_logs['qx_orb'][0], combined_logs['qy_orb'][0], combined_logs['qz_orb'][0]]
     ref_scale = 1
     ref_transformation_matrix = GetTransformationMatrix(ref_translation, ref_quat, ref_scale)
 
-    transformation_matrices[log_data['time'][0]] = [ref_transformation_matrix, log_data['image_name'][0], log_data['height'][0]]
+    transformation_matrices[combined_logs['time'][0]] = [ref_transformation_matrix, combined_logs['image_name'][0], combined_logs['height'][0]]
 
-    for index, i in orb_data.iterrows():
-
-
-        ind = int(np.where(log_data['time']/1000==i['time'])[0])
+    for index, i in combined_logs.iterrows():
         
-        if int(ind)!=0:
+        if index!=0:    
             
-            current_coords = (log_data['latitude'][ind], log_data['longitude'][ind])
-            prev_coords = (log_data['latitude'][ind-1], log_data['longitude'][ind-1])
-            scale = GetScale(prev_coords, current_coords)
+            current_coords = (combined_logs['latitude'][index], combined_logs['longitude'][index])
+            prev_coords = (combined_logs['latitude'][index-1], combined_logs['longitude'][index-1])
+            global_distance = GetGlobalDistance(prev_coords, current_coords)
 
-            translation = [orb_data['x'][index], orb_data['y'][index], orb_data['z'][index]]
-            quat = [orb_data['qw'][index], orb_data['qx'][index], orb_data['qy'][index], orb_data['qz'][index]]
+            prev_translation = [combined_logs['x_orb'][index-1], combined_logs['y_orb'][index-1], combined_logs['z_orb'][index-1]]
+            translation = [combined_logs['x_orb'][index], combined_logs['y_orb'][index], combined_logs['z_orb'][index]]
+            local_distance = np.linalg.norm(np.array(translation)-np.array(prev_translation))
+
+            scale = global_distance/local_distance
+
+            quat = [combined_logs['qw_orb'][index], combined_logs['qx_orb'][index], combined_logs['qy_orb'][index], combined_logs['qz_orb'][index]]
+            
             transformation_matrix = GetTransformationMatrix(translation, quat, scale)
             
-            print(transformation_matrix)
-            transformation_matrices[i['time']] = [transformation_matrix, log_data['image_name'][ind], log_data['height'][ind]]
+            # print(transformation_matrix)
+            transformation_matrices[i['time']] = [transformation_matrix, combined_logs['image_name'][index], combined_logs['height'][index]]
     
     return transformation_matrices
+
+
+def GetHomographyMatrices(homography_data):
+    
+    #Returns homography matrices between consecutive images
+    homography_matrices={}
+    normal = np.array([1,0,0]) #Normal taken along z direction
+
+    keys = list(homography_data)
+    keys_temp = keys[:-1]
+    for i in keys_temp:
+        trans_mat1 = homography_data[i][0]
+        trans_mat2 = homography_data[keys[keys.index(i)+1]][0]
+        r21 = trans_mat2[:3,:3] @ trans_mat1[:3,:3].T
+        t21 = trans_mat2[:3,:3] @ (-trans_mat1[:3,:3] @ trans_mat1[0:3,3]) + trans_mat2[0:3,3]
+        h21 = r21 - (t21.reshape(3,1) @ normal.reshape(1,3))/homography_data[i][2]
+
+        homography_matrices[homography_data[keys[keys.index(i)+1]][1]] = h21
+    
+    return homography_matrices
+    
