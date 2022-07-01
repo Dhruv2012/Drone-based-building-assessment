@@ -157,7 +157,7 @@ def GetHomographyData(combined_logs):
             transformation_matrix = GetTransformationMatrix(translation, quat, scale)
             
             # print(transformation_matrix)
-            transformation_matrices[i['time']] = [transformation_matrix, combined_logs['image_name'][index], combined_logs['height'][index]]
+            transformation_matrices[combined_logs['time'][index]] = [transformation_matrix, combined_logs['image_name'][index], combined_logs['height'][index]]
     
     return transformation_matrices
 
