@@ -1,3 +1,4 @@
+from math import comb
 from cv2 import transform
 import numpy as np
 import pandas as pd
@@ -119,7 +120,6 @@ def GetTransformationMatrix(translation, quaternion, scale):
     return transformation_matrix
 
 def Combinelogs(flight_log, orb_log):
-
     #Converting flight logs time from seconds to miliseconds
     flight_log['time'] = flight_log['time']/1000
     combined_log = pd.merge(flight_log, orb_log, on='time')
@@ -151,7 +151,9 @@ def GetHomographyData(combined_logs):
             local_distance = np.linalg.norm(np.array(translation)-np.array(prev_translation))
 
             scale = global_distance/local_distance
-
+            
+            print(combined_logs['time'][index], combined_logs['time'][index-1])
+            print(global_distance)
             quat = [combined_logs['qw_orb'][index], combined_logs['qx_orb'][index], combined_logs['qy_orb'][index], combined_logs['qz_orb'][index]]
             
             transformation_matrix = GetTransformationMatrix(translation, quat, scale)
