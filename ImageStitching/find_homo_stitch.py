@@ -9,6 +9,40 @@ import open3d as o3d
 
 import utils
 
+def stitch(img1, img2):
+    # img1 = cv2.resize(img1,(0,0),fx = 0.2, fy = 0.2)
+    # img2 = cv2.resize(img2,(0,0),fx = 0.2, fy = 0.2)
+    img_gray1 = cv2.cvtColor(img1, cv2.COLOR_RGB2GRAY)
+    img_gray2 = cv2.cvtColor(img2, cv2.COLOR_RGB2GRAY)
+
+    descriptor = cv2.AKAZE_create()
+    kps1, features1 = descriptor.detectAndCompute(img_gray1, None)
+    kps2, features2 = descriptor.detectAndCompute(img_gray2, None)
+
+    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck = False)
+
+    best_match = bf.knnMatch(features1, features2, 2)
+    good_match = []
+    for m, n in best_match:
+        if m.distance < n.distance * 0.7:
+            good_match.append(m)
+
+    img3 = cv2.drawMatches(img1, kps1, img2, kps2, good_match, None, flags = cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+    cv2.imshow("img3",img3)
+    kps1 = np.float32([kp.pt for kp in kps1])
+    kps2 = np.float32([kp.pt for kp in kps2])
+    h, w, c = img1.shape
+    # warp = cv2.warpPerspective(img1, H, (2*w, 2*h))
+    # warp[:img2.shape[0], :img2.shape[1]] = img2
+    H =np.eye(3)
+
+    if len(good_match) > 4:
+        pts1 = np.float32([kps1[m.queryIdx] for m in good_match])
+        pts2 = np.float32([kps2[m.trainIdx] for m in good_match])
+        H, status = cv2.findHomography(pts1, pts2, cv2.RANSAC, 4)
+    warp = cv2.warpPerspective(img1, H, (2*w, 2*h))
+    warp[:img2.shape[0], :img2.shape[1]] = img2
+    return warp, H
 
 def getHomography(o_tf_a,o_tf_b, a_n, a_d):
     # ra_b is the transformation to a frame from b frame.
@@ -24,7 +58,9 @@ def getHomography(o_tf_a,o_tf_b, a_n, a_d):
 
     b_R_a = b_R_o.dot(a_R_o.T)      
     b_t_a = b_R_o.dot(-a_R_o.T.dot(a_t_o)) + b_t_o
-    print(b_R_a, b_t_a)
+
+    print("t1\n", o_t_a, "\nt2\n", o_t_b)
+    print("Rotation\n",b_R_a, "\ntranslation\n", b_t_a)
     print((b_t_a.dot(a_n.T))/a_d)
     b_H_a = b_R_a -(b_t_a.dot(a_n.T))/a_d
     return b_H_a
@@ -63,10 +99,21 @@ if __name__ == "__main__":
     
     opt_img = np.zeros((10,10))
     K = np.eye(3)
-    K[0,0] = K[1,1] = 1308*0.2
+    K[0,0] = K[1,1] = 1311*0.2
     K[0,2] = 960*0.2
     K[1,2] = 540*0.2
     pt_list = []
+    axes = o3d.geometry.LineSet()
+    axes.points = o3d.utility.Vector3dVector([[0,0,0],[0,0,100],[0,100,0],[100,0,0]])
+    axes.lines = o3d.utility.Vector2iVector([[0,1],[0,2],[0,3]])
+    axes.colors = o3d.utility.Vector3dVector([[0,0,1],[0,1,0],[1,0,0]])
+    warp_img = np.zeros((10,10))
+    warpfm = np.zeros((10,10))
+    stitcher = cv2.Stitcher.create(mode =1)
+    opt_img = np.zeros((3,3))
+    good_img = np.zeros((3,3))
+    img_list = []
+    my_list = []
     for i in transformation_matrices.keys():
         if(count==0):
             o_tf_prev = transformation_matrices[i][0]
@@ -75,7 +122,14 @@ if __name__ == "__main__":
             prev_frame = cv2.imread('/home/kuromadoshi/IIITH/'+img_path_prev.split("/")[4] + '/' + img_path_prev.split("/")[5] + '/' + img_path_prev.split("/")[6] + '/' + img_path_prev.split("/")[7])
             prev_frame = cv2.resize(prev_frame,(0,0),fx = 0.2,fy = 0.2)
             
-            opt_img = np.zeros(shape = (int(5*prev_frame.shape[0]), int(5*prev_frame.shape[1]), prev_frame.shape[2]))
+            # opt_img = np.zeros(shape = (int(5*prev_frame.shape[0]), int(5*prev_frame.shape[1]), prev_frame.shape[2]))
+            H = np.eye(3)
+            warp_img = cv2.warpPerspective(prev_frame, H, (2*prev_frame.shape[1], 2*prev_frame.shape[0]))
+            warpfm = cv2.warpPerspective(prev_frame, H, (2*prev_frame.shape[1], 2*prev_frame.shape[0]))
+            opt_img = prev_frame
+            good_img = opt_img
+            img_list.append(good_img)
+            my_list.append(good_img)
             count+=1
             continue
         o_tf_cur = transformation_matrices[i][0]
@@ -85,44 +139,82 @@ if __name__ == "__main__":
         cur_frame = cv2.resize(cur_frame,(0,0),fx = 0.2,fy = 0.2)
         cur_n = np.array([0,0, -1])
         cur_n = cur_n.reshape(3,1)
-        prev_H_cur_eu = getHomography(o_tf_cur, o_tf_prev, cur_n, cur_d)
-        prev_H_cur = (K.dot(prev_H_cur_eu)).dot(np.linalg.inv(K))
-        prev_H_cur /= prev_H_cur[2,2]
-
-        print("Homography =")
-        print(prev_H_cur)
-        print("Homo eu")
-        print(prev_H_cur_eu)
-        Hi = np.linalg.inv(prev_H_cur)
-        print(Hi)
+        # cur_H_prev_eu = getHomography(o_tf_prev, o_tf_cur, cur_n, prev_d)
+        # cur_H_prev = (K.dot(cur_H_prev_eu)).dot(np.linalg.inv(K))
+        # cur_H_prev /= cur_H_prev[2,2]
+        # Hi = np.linalg.inv(cur_H_prev)
+        # Hi /= Hi[2,2]
+        # print()
+        # print("curTf\n", o_tf_cur)
+        # print("Fm H")
+    
+        # _, Hfm = stitch(prev_frame, cur_frame)
+        # print(Hfm)
+        # print("Hi")
+        # print(Hi)
+        # print("Homography =")
+        # print(cur_H_prev)
+        # print("Homo eu")
+        # print(cur_H_prev_eu)
+       
+        
         print("K")
         print(K)
-        warped_img = cv2.warpPerspective(prev_frame, Hi, (prev_frame.shape[1]+cur_frame.shape[1], prev_frame.shape[0]+cur_frame.shape[0]), flags = cv2.INTER_LINEAR)
-        warped_img[:prev_frame.shape[0], :prev_frame.shape[1]] = cur_frame
+        img_list.append(cur_frame)
+        my_list.append(cur_frame)
+        # status, opt_img = stitcher.stitch(img_list)
+        # warpfm = cv2.warpPerspective(warpfm, Hfm , (prev_frame.shape[1] + cur_frame.shape[1], 2000), flags = cv2.INTER_NEAREST)
+        # warp_img = cv2.warpPerspective(warp_img, cur_H_prev, (prev_frame.shape[1] + cur_frame.shape[1], 2000), flags = cv2.INTER_NEAREST)
+        # warp_img[:cur_frame.shape[0], :cur_frame.shape[1]] = cur_frame
+        # warpfm[:cur_frame.shape[0], :cur_frame.shape[1]] = cur_frame
         # # w2 = cv2.warpPerspective(cur_frame, np.eye(3), (opt_img.shape[1], opt_img.shape[0]), flags = cv2.INTER_LINEAR)
         # opt_img[warped_img > 0] = warped_img[warped_img > 0]
-        cv2.imshow(img_path_cur, warped_img)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        # cv2.imshow("warpimg", warp_img)
+        # cv2.imshow("Warpfm", warpfm)
+        # print("status=",status)
+        # if(status ==0):
+        #     # cv2.imshow("stitch", opt_img)
+        #     # cv2.waitKey(0)
+        #     img_list = [good_img, cur_frame]
+        #     good_img = opt_img
+        #     img_list = [good_img]
+        # else:
+        #     img_list.append(prev_frame)
+        # cv2.destroyAllWindows()
+        
         pt = [o_tf_cur[0,3], o_tf_cur[1,3], o_tf_cur[2,3]]
         pt_list.append(pt)
+
+        pcl = o3d.geometry.PointCloud()
+        pcl.points = o3d.utility.Vector3dVector(pt_list)
+        pcl.paint_uniform_color([1,0,0])
+        colors = np.array(pcl.colors)
+        colors[colors.shape[0]-1] = np.array([0,0,1])
+        pcl.colors = o3d.utility.Vector3dVector(colors)
+        # o3d.visualization.draw_geometries([pcl, axes],
+        #                     zoom=0.8,
+        #                     front=[-0.4999, -0.1659, -0.8499],
+        #                     lookat=[2.1813, 2.0619, 2.0999],
+        #                     up=[0.1204, -0.9852, 0.1215])
+
         o_tf_prev = o_tf_cur
         img_path_prev = img_path_cur
         prev_d = cur_d
         prev_frame = cur_frame
         print("Hello")
         print("count = ", count)
-        if(count ==1):
+        count+=1
+        if(count ==170):
             break
 
-    # pcl = o3d.geometry.PointCloud()
-    # pcl.points = o3d.utility.Vector3dVector(pt_list)
-    # pcl.paint_uniform_color([1,0,0])
-    # axes = o3d.geometry.LineSet()
-    # axes.points = o3d.utility.Vector3dVector([[0,0,0],[0,0,100],[0,100,0],[100,0,0]])
-    # axes.lines = o3d.utility.Vector2iVector([[0,1],[0,2],[0,3]])
-    # axes.colors = o3d.utility.Vector3dVector([[0,0,1],[0,1,0],[1,0,0]])
-
+    pcl = o3d.geometry.PointCloud()
+    pcl.points = o3d.utility.Vector3dVector(pt_list)
+    pcl.paint_uniform_color([1,0,0])
+    stitcher = cv2.Stitcher.create(mode = 0)
+    status, opt = stitcher.stitch(my_list)
+    cv2.imwrite("myopt.png", opt)
+    # cv2.imwrite("svo.png", warp_img)
+    # cv2.imwrite("fm.png", warpfm)
     # o3d.visualization.draw_geometries([pcl, axes],
     #                         zoom=0.8,
     #                         front=[-0.4999, -0.1659, -0.8499],

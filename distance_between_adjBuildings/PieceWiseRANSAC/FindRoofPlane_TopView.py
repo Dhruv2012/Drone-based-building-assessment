@@ -104,7 +104,7 @@ class AdjacentRoofDistance:
         inlier_cloud = cloud.select_by_index(inliers)
         inlier_cloud.paint_uniform_color([1.0, 0, 0])
         outlier_cloud = cloud.select_by_index(inliers, invert=True)
-
+        
         # TODO: Add visualization
 
         return plane_model,inliers,inlier_cloud
@@ -125,7 +125,12 @@ class AdjacentRoofDistance:
         rightBuilding = o3d.geometry.PointCloud()
         rightBuilding.points = o3d.utility.Vector3dVector(rightBuildingPoints)
         rightBuilding.paint_uniform_color([0,0,1])
-
+        
+        o3d.visualization.draw_geometries([leftBuilding, rightBuilding],
+                            zoom=0.8,
+                            front=[-0.4999, -0.1659, -0.8499],
+                            lookat=[2.1813, 2.0619, 2.0999],
+                            up=[0.1204, -0.9852, 0.1215])
         # TODO: Add visualization(If required)
 
         return leftBuilding, rightBuilding
