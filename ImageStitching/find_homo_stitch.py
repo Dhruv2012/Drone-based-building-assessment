@@ -9,7 +9,6 @@ import open3d as o3d
 
 import utils
 
-
 def getHomography(o_tf_a,o_tf_b, a_n, a_d):
     # ra_b is the transformation to a frame from b frame.
     o_R_a = o_tf_a[0:3, 0:3]
@@ -141,20 +140,3 @@ if __name__ == "__main__":
     # while(cv2.waitKey(1)!=ord('q')):
     #     pass
     # cv2.destroyAllWindows()
-
-
-
-
-
-
-
-
-    
-
-
-
-
-
-
-
-    
