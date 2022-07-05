@@ -135,7 +135,7 @@ def GetHomographyData(combined_logs):
     ref_quat = [combined_logs['qw_orb'][0], combined_logs['qx_orb'][0], combined_logs['qy_orb'][0], combined_logs['qz_orb'][0]]
     ref_scale = 1
     ref_transformation_matrix = GetTransformationMatrix(ref_translation, ref_quat, ref_scale)
-
+    
     transformation_matrices[combined_logs['time'][0]] = [ref_transformation_matrix, combined_logs['image_name'][0], combined_logs['height'][0]]
 
     for index, i in combined_logs.iterrows():
