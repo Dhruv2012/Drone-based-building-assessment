@@ -1,4 +1,3 @@
-# https://www.youtube.com/watch?v=XgK8ZRvcE5E
 import sys
 import os
 from PyQt5.QtWidgets import QApplication, QWidget, QComboBox, QPushButton, QFileDialog, QVBoxLayout
