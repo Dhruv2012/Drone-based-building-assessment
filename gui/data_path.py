@@ -45,7 +45,7 @@ class DisplayResults(QMainWindow):
 
     def retranslateUi(self, DisplayResults):
         _translate = QtCore.QCoreApplication.translate
-        DisplayResults.setWindowTitle(_translate("Displaying Intermediate Results", "Displaying Intermediate Results"))
+        self.setWindowTitle(_translate("Displaying Intermediate Results", "Displaying Intermediate Results"))
         self.final_button.setText(_translate("Displaying Intermediate Results", "Skip to Final Results"))
         self.intermediate_button.setText(_translate("Displaying Intermediate Results", "Show Intermediate Results"))
 
@@ -54,9 +54,10 @@ class DisplayResults(QMainWindow):
         latest_image = max(glob.iglob(folder_path + '/*'), key=os.path.getctime)
         print(latest_image)
         if latest_image == './test_folder/done.txt':
-            _translate = QtCore.QCoreApplication.translate
             self.roof_area_photo.setPixmap(QtGui.QPixmap("./gui_images/Roof_Area_Calculation.png"))
-            self.intermediate_button.setText(_translate("Assessment of Civil Structures", "All Intermediate Results Displayed. Press Again to Quit."))
+            _translate = QtCore.QCoreApplication.translate
+            
+            self.intermediate_button.setText(_translate("Displaying Intermediate Results", "All Intermediate Results Displayed. Press Again to Quit."))
             self.intermediate_button.clicked.connect(DisplayResults.close)
         self.roof_area_photo.setPixmap(QtGui.QPixmap(latest_image))
 
