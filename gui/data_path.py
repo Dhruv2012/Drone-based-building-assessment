@@ -7,16 +7,69 @@ import cv2
 import os
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, Qt,QObject
 import glob
-import time
 
+class DisplayResults(QMainWindow):
+    def __init__(self):
+        super(DisplayResults, self).__init__()
+        
+        self.setWindowTitle("Displaying Intermediate Results")
+        # self.window_width, self.window_height = 1800, 600
+        # self.setMinimumSize(self.window_width, self.window_height)
+        self.setWindowState(Qt.WindowMaximized)
+        
+        self.main_layout = QVBoxLayout()
+
+        self.roof_area_photo = QtWidgets.QLabel()
+        self.roof_area_photo.setPixmap(QtGui.QPixmap("./gui_images/Roof_Area_Calculation.png"))
+        self.roof_area_photo.setScaledContents(True)
+        self.main_layout.addWidget(self.roof_area_photo)
+
+
+        self.buttons = QHBoxLayout()
+
+        self.intermediate_button = QPushButton('Show Intermediate Results')
+        self.intermediate_button.clicked.connect(self.show_intermediate_results)
+        self.buttons.addWidget(self.intermediate_button)
+        
+        self.final_button = QPushButton('Show Final Results')
+        self.final_button.clicked.connect(self.show_final_results)
+        self.buttons.addWidget(self.final_button)
+
+        
+        self.main_layout.addLayout(self.buttons)
+        self.main_layout.setSpacing(200)
+
+        widget = QWidget()
+        widget.setLayout(self.main_layout)
+        self.setCentralWidget(widget)
+
+    def retranslateUi(self, DisplayResults):
+        _translate = QtCore.QCoreApplication.translate
+        DisplayResults.setWindowTitle(_translate("Displaying Intermediate Results", "Displaying Intermediate Results"))
+        self.final_button.setText(_translate("Displaying Intermediate Results", "Skip to Final Results"))
+        self.intermediate_button.setText(_translate("Displaying Intermediate Results", "Show Intermediate Results"))
+
+    def show_intermediate_results(self):
+        folder_path = './test_folder'
+        latest_image = max(glob.iglob(folder_path + '/*'), key=os.path.getctime)
+        print(latest_image)
+        if latest_image == './test_folder/done.txt':
+            _translate = QtCore.QCoreApplication.translate
+            self.roof_area_photo.setPixmap(QtGui.QPixmap("./gui_images/Roof_Area_Calculation.png"))
+            self.intermediate_button.setText(_translate("Assessment of Civil Structures", "All Intermediate Results Displayed. Press Again to Quit."))
+            self.intermediate_button.clicked.connect(DisplayResults.close)
+        self.roof_area_photo.setPixmap(QtGui.QPixmap(latest_image))
+
+    def show_final_results(self):
+        self.close()
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         self.setWindowTitle("Assessment of Civil Structures")
-        self.window_width, self.window_height = 1800, 600
-        self.setMinimumSize(self.window_width, self.window_height)
-
+        # self.window_width, self.window_height = 1800, 600
+        # self.setMinimumSize(self.window_width, self.window_height)
+        self.setWindowState(Qt.WindowMaximized)
         self.main_layout = QVBoxLayout()
         
 
@@ -64,8 +117,9 @@ class MainWindow(QMainWindow):
         self.roofarea_photo = QtWidgets.QLabel()
         self.roofarea_photo.setPixmap(QtGui.QPixmap("./gui_images/roofareacalculation.png"))
         self.roofarea.addWidget(self.roofarea_photo)
-        roof_area_button = QPushButton('Roof Area Calculation')
-        self.roofarea.addWidget(roof_area_button)
+        self.roof_area_button = QPushButton('Roof Area Calculation')
+        self.roofarea.addWidget(self.roof_area_button)
+        self.roof_area_button.clicked.connect(self.roof_area_calculation)
         self.roofarea.setSpacing(0)
         
         self.other_modules.addLayout(self.roofarea)
@@ -91,10 +145,7 @@ class MainWindow(QMainWindow):
         widget.setLayout(self.main_layout)
         self.setCentralWidget(widget)
     
-    def submitDialog(self):
-        global mode
-        option = self.options.index(self.combo.currentText())
-        mode = self.options[option]
+    def roof_area_calculation(self):
         self.close()
 
 
@@ -120,69 +171,8 @@ if __name__ == '__main__':
     try:
         sys.exit(app.exec_())
     except SystemExit:
-        print("")
+        app1 = QApplication(sys.argv)
+        myApp1 = DisplayResults()
+        myApp1.show()
+        sys.exit(app1.exec_())
 
-
-# class DisplayResults(object):
-#     def setup(self, MainWindow):
-#         MainWindow.setObjectName("Assessment of Civil Structures")
-#         MainWindow.resize(800, 600)
-#         self.centralwidget = QtWidgets.QWidget(MainWindow)
-#         self.centralwidget.setObjectName("centralwidget")
-#         self.photo = QtWidgets.QLabel(self.centralwidget)
-#         self.photo.setGeometry(QtCore.QRect(0, 0, 841, 511))
-#         self.photo.setText("")
-#         self.photo.setPixmap(QtGui.QPixmap("./test_folder/env0_easy_00002.png"))
-#         self.photo.setScaledContents(True)
-#         self.photo.setObjectName("photo")
-#         self.intermediate_results = QtWidgets.QPushButton(self.centralwidget)
-#         self.intermediate_results.setGeometry(QtCore.QRect(0, 510, 411, 41))
-#         self.intermediate_results.setObjectName("Show Intermediate Results")
-#         self.final_results = QtWidgets.QPushButton(self.centralwidget)
-#         self.final_results.setGeometry(QtCore.QRect(410, 510, 391, 41))
-#         self.final_results.setObjectName("Wait for Final Results")
-#         MainWindow.setCentralWidget(self.centralwidget)
-#         self.menubar = QtWidgets.QMenuBar(MainWindow)
-#         self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 21))
-#         self.menubar.setObjectName("menubar")
-#         MainWindow.setMenuBar(self.menubar)
-#         self.statusbar = QtWidgets.QStatusBar(MainWindow)
-#         self.statusbar.setObjectName("statusbar")
-#         MainWindow.setStatusBar(self.statusbar)
-
-#         self.retranslateUi(MainWindow)
-#         QtCore.QMetaObject.connectSlotsByName(MainWindow)
-
-#         self.intermediate_results.clicked.connect(self.show_intermediate_results)
-#         self.final_results.clicked.connect(MainWindow.close)
-
-#     def retranslateUi(self, MainWindow):
-#         _translate = QtCore.QCoreApplication.translate
-#         MainWindow.setWindowTitle(_translate("Assessment of Civil Structures", "Assessment of Civil Structures"))
-#         self.final_results.setText(_translate("Assessment of Civil Structures", "Skip to Final Results"))
-#         self.intermediate_results.setText(_translate("Assessment of Civil Structures", "Show Intermediate Results"))
-
-#     def show_intermediate_results(self):
-#         folder_path = './test_folder'
-#         latest_image = max(glob.iglob(folder_path + '/*.png'), key=os.path.getctime)
-#         print(latest_image)
-#         if latest_image == './test_folder/env0_easy_00005.png':
-#             _translate = QtCore.QCoreApplication.translate
-#             self.intermediate_results.setText(_translate("Assessment of Civil Structures", "All Intermediate Results Displayed. Press Again to Quit."))
-#             self.intermediate_results.clicked.connect(MainWindow.close)
-#         self.photo.setPixmap(QtGui.QPixmap(latest_image))
-
-#     def show_final_results(self):
-#         self.close()
-
-
-
-
-# if __name__ == "__main__":
-
-#     app = QtWidgets.QApplication(sys.argv)
-#     MainWindow = QtWidgets.QMainWindow()
-#     ui = DisplayResults()
-#     ui.setup(MainWindow)
-#     MainWindow.show()
-#     sys.exit(app.exec_())
