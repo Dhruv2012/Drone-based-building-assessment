@@ -1,24 +1,23 @@
 from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
 import sys
 import cv2
 import os
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, Qt,QObject
 import glob
 
-class DisplayResults(QMainWindow):
+class DisplayResults(QScrollArea):
     def __init__(self):
-        super(DisplayResults, self).__init__()
+        super(DisplayResults,self).__init__()
         
         self.setWindowTitle("Displaying Intermediate Results")
         # self.window_width, self.window_height = 1800, 600
         # self.setMinimumSize(self.window_width, self.window_height)
-        self.setWindowState(Qt.WindowMaximized)
+        # self.setWindowState(Qt.WindowMaximized)
         
         self.main_layout = QVBoxLayout()
-
+        self.main_layout.setAlignment(Qt.AlignTop)
         self.roof_area_photo = QtWidgets.QLabel()
         self.roof_area_photo.setPixmap(QtGui.QPixmap("./gui_images/Roof_Area_Calculation.png"))
         self.roof_area_photo.setScaledContents(True)
@@ -35,14 +34,17 @@ class DisplayResults(QMainWindow):
         self.final_button.clicked.connect(self.show_final_results)
         self.buttons.addWidget(self.final_button)
 
-        
+
+
+
         self.main_layout.addLayout(self.buttons)
-        self.main_layout.setSpacing(200)
+        self.main_layout.setSpacing(0)
 
         widget = QWidget()
         widget.setLayout(self.main_layout)
-        self.setCentralWidget(widget)
-
+        self.setWidget(widget)
+        self.setWidgetResizable(True)
+    
     def retranslateUi(self, DisplayResults):
         _translate = QtCore.QCoreApplication.translate
         self.setWindowTitle(_translate("Displaying Intermediate Results", "Displaying Intermediate Results"))
@@ -52,26 +54,27 @@ class DisplayResults(QMainWindow):
     def show_intermediate_results(self):
         folder_path = './test_folder'
         latest_image = max(glob.iglob(folder_path + '/*'), key=os.path.getctime)
-        print(latest_image)
         if latest_image == './test_folder/done.txt':
             self.roof_area_photo.setPixmap(QtGui.QPixmap("./gui_images/Roof_Area_Calculation.png"))
             _translate = QtCore.QCoreApplication.translate
             
             self.intermediate_button.setText(_translate("Displaying Intermediate Results", "All Intermediate Results Displayed. Press Again to Quit."))
-            self.intermediate_button.clicked.connect(DisplayResults.close)
+            self.intermediate_button.clicked.connect(self.close)
         self.roof_area_photo.setPixmap(QtGui.QPixmap(latest_image))
 
     def show_final_results(self):
         self.close()
 
-class MainWindow(QMainWindow):
+class MainWindow(QScrollArea):
     def __init__(self):
         super(MainWindow, self).__init__()
+        self.myApp = None
         self.setWindowTitle("Assessment of Civil Structures")
         # self.window_width, self.window_height = 1800, 600
         # self.setMinimumSize(self.window_width, self.window_height)
         self.setWindowState(Qt.WindowMaximized)
         self.main_layout = QVBoxLayout()
+        self.main_layout.setAlignment(Qt.AlignTop)
         
 
         self.video_path = QPushButton('Video Path')
@@ -137,18 +140,25 @@ class MainWindow(QMainWindow):
         self.other_modules.addStretch(1)
         self.other_modules.setSpacing(80)
 
+        self.contributors_list = QLabel()
+        self.contributors_list.setText("<html><ul>Contributors:<li>Kushagra Srivastava</li><li>Dhruv Patel</li><li>Aditya Kumar Jha</li><li>Mohhit Kumar Jha</li><li>Jaskirat Singh</li><li>Ravi Kiran Sarvadevabhatla</li><li>Pradeep Kumar Ramancharla</li><li>Harikumar Kandath</li><li>K. Madhava Krishna</li></ul></html>")
+
         self.main_layout.addLayout(self.distance_modules)
         self.main_layout.addLayout(self.other_modules)
+        self.main_layout.addWidget(self.contributors_list)
         self.main_layout.setSpacing(100)
         self.main_layout.addStretch(1)
 
         widget = QWidget()
         widget.setLayout(self.main_layout)
-        self.setCentralWidget(widget)
+        self.setWidget(widget)
+        self.setWidgetResizable(True)
     
-    def roof_area_calculation(self):
-        self.close()
-
+    def roof_area_calculation(self,checked):
+        # self.close()
+        if self.myApp is None:
+            self.myApp = DisplayResults()
+        self.myApp.show()
 
     def getFileName(self):
         global filepath
@@ -160,20 +170,9 @@ class MainWindow(QMainWindow):
 if __name__ == '__main__':
 
     app = QApplication(sys.argv)
-    app.setStyleSheet('''
-        QWidget {
-            font-size: 24px;
-        }
-    ''')
+    app.setStyleSheet('''QWidget {font-size: 24px; }''')
     
     myApp = MainWindow()
     myApp.show()
-   
-    try:
-        sys.exit(app.exec_())
-    except SystemExit:
-        app1 = QApplication(sys.argv)
-        myApp1 = DisplayResults()
-        myApp1.show()
-        sys.exit(app1.exec_())
+    app.exec_()
 
