@@ -2,30 +2,35 @@ from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 import sys
-# import cv2
+import cv2
 import os
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, Qt,QObject
 import glob
 import docker
-
-client = docker.from_env()
-
-class DisplayResults(QMainWindow):
-    def __init__(self):
-        super(DisplayResults, self).__init__()
+# client = docker.from_env()
+class DisplayResults(QScrollArea):
+    def __init__(self,mode):
+        super(DisplayResults,self).__init__()
         
         self.setWindowTitle("Displaying Intermediate Results")
-        self.window_width, self.window_height = 1000, 333
-        self.setMinimumSize(self.window_width, self.window_height)
-        self.setWindowState(Qt.WindowMaximized)
+        # self.window_width, self.window_height = 1800, 600
         
+        # self.setWindowState(Qt.WindowMaximized)
+        self.window_height, self.window_width, _ = cv2.imread('./gui_images/'+mode+'.png').shape
+        self.setMinimumSize(self.window_width+80, self.window_height+80)
+        self.mode = mode
         self.main_layout = QVBoxLayout()
-        # self.main_layout.setAlignment(Qt.AlignTop)
-        self.roof_area_photo = QtWidgets.QLabel()
-        self.roof_area_photo.setPixmap(QtGui.QPixmap("./gui_images/Roof_Area_Calculation.png"))
-        self.roof_area_photo.setScaledContents(True)
-        self.main_layout.addWidget(self.roof_area_photo)
+        self.main_layout.setAlignment(Qt.AlignTop)
+        self.mode_photo = QtWidgets.QLabel()
+        self.mode_photo.setPixmap(QtGui.QPixmap(os.path.join("./gui_images", self.mode+'.png')))
+        self.mode_photo.setScaledContents(True)
+        self.main_layout.addWidget(self.mode_photo)
 
+        folder_path = self.mode
+        self.intermediate_results_path = os.path.join(folder_path, 'intermediate_results')
+        self.final_results_path = os.path.join(folder_path, 'final_results')
+        os.makedirs(self.intermediate_results_path, exist_ok=True)
+        os.makedirs(self.final_results_path, exist_ok=True)
 
         self.buttons = QHBoxLayout()
 
@@ -37,15 +42,13 @@ class DisplayResults(QMainWindow):
         self.final_button.clicked.connect(self.show_final_results)
         self.buttons.addWidget(self.final_button)
 
-
         self.main_layout.addLayout(self.buttons)
-        self.main_layout.setSpacing(20)
+        self.main_layout.setSpacing(0)
 
         widget = QWidget()
         widget.setLayout(self.main_layout)
-        self.setCentralWidget(widget)
-        # self.setWidget(widget)
-        # self.setWidgetResizable(True)
+        self.setWidget(widget)
+        self.setWidgetResizable(True)
     
     def retranslateUi(self, DisplayResults):
         _translate = QtCore.QCoreApplication.translate
@@ -54,35 +57,36 @@ class DisplayResults(QMainWindow):
         self.intermediate_button.setText(_translate("Displaying Intermediate Results", "Show Intermediate Results"))
 
     def show_intermediate_results(self):
-        folder_path = '../RoofResults'
-        latest_image = max(glob.iglob(folder_path + '/*'), key=os.path.getctime)
-        if latest_image == './RoofResults/done.txt':
-            self.roof_area_photo.setPixmap(QtGui.QPixmap("./gui_images/Roof_Area_Calculation.png"))
+
+
+        latest_image = max(glob.iglob(self.intermediate_results_path + '/*'), key=os.path.getctime)
+        if latest_image == self.intermediate_results_path+'/done.txt':
+            self.mode_photo.setPixmap(QtGui.QPixmap(os.path.join("./gui_images", self.mode+'.png')))
             _translate = QtCore.QCoreApplication.translate
             
             self.intermediate_button.setText(_translate("Displaying Intermediate Results", "All Intermediate Results Displayed. Press Again to Quit."))
-            self.intermediate_button.clicked.connect(DisplayResults.close)
-        self.roof_area_photo.setPixmap(QtGui.QPixmap(latest_image))
+            self.intermediate_button.clicked.connect(self.close)
+        self.mode_photo.setPixmap(QtGui.QPixmap(latest_image))
 
     def show_final_results(self):
         self.close()
 
-class MainWindow(QMainWindow):
+class MainWindow(QScrollArea):
     def __init__(self):
         super(MainWindow, self).__init__()
         self.myApp = None
         self.setWindowTitle("Assessment of Civil Structures")
-        # self.window_width, self.window_height = 1800, 600
-        # self.setMinimumSize(self.window_width, self.window_height)
         self.setWindowState(Qt.WindowMaximized)
-        # self.showMaximized()
         self.main_layout = QVBoxLayout()
-        # self.main_layout.setAlignment(Qt.AlignTop)
+        self.main_layout.setAlignment(Qt.AlignTop)
         
 
         self.video_path = QPushButton('Video Path')
-        self.video_path.clicked.connect(self.getFileName)
+        self.video_path.clicked.connect(self.GetVideoFile)
         self.main_layout.addWidget(self.video_path)
+        self.log_path = QPushButton('Log Path')
+        self.log_path.clicked.connect(self.GetLogFile)
+        self.main_layout.addWidget(self.log_path)
 
         self.distance_modules = QHBoxLayout()
         self.distance_modules.addStretch(1)
@@ -92,6 +96,7 @@ class MainWindow(QMainWindow):
         self.frontal_mode_photo.setPixmap(QtGui.QPixmap("./gui_images/frontalviewdronepov.jpg"))
         self.frontal_mode.addWidget(self.frontal_mode_photo)
         self.frontal_mode_button = QPushButton('Frontal Mode')
+        self.frontal_mode_button.clicked.connect(self.frontal_mode_results)
         self.frontal_mode.addWidget(self.frontal_mode_button)
         self.frontal_mode.setSpacing(0)
         self.distance_modules.addLayout(self.frontal_mode)
@@ -102,6 +107,7 @@ class MainWindow(QMainWindow):
         self.inbetween_mode_photo.setPixmap(QtGui.QPixmap("./gui_images/inbetweenviewdronepov.jpg"))
         self.inbetween_mode.addWidget(self.inbetween_mode_photo)
         self.inbetween_mode_button = QPushButton('In-Between Mode')
+        self.inbetween_mode_button.clicked.connect(self.inbetween_mode_results)
         self.inbetween_mode.addWidget(self.inbetween_mode_button)
         self.inbetween_mode.setSpacing(0)
         self.distance_modules.addLayout(self.inbetween_mode)
@@ -111,12 +117,13 @@ class MainWindow(QMainWindow):
         self.roof_mode_photo.setPixmap(QtGui.QPixmap("./gui_images/rooftopdronepov.jpg"))
         self.roof_mode.addWidget(self.roof_mode_photo)
         self.roof_mode_button = QPushButton('Roof Mode')
+        self.roof_mode_button.clicked.connect(self.roof_mode_results)
         self.roof_mode.setSpacing(0)
         self.roof_mode.addWidget(self.roof_mode_button)
         self.distance_modules.addLayout(self.roof_mode)
 
         self.distance_modules.addStretch(1)
-        self.distance_modules.setSpacing(50)
+        self.distance_modules.setSpacing(120)
         
         self.other_modules = QHBoxLayout()
         self.other_modules.addStretch(1)
@@ -136,6 +143,7 @@ class MainWindow(QMainWindow):
         self.roof_layout_photo.setPixmap(QtGui.QPixmap("./gui_images/rooflayoutestimation.png"))
         self.roof_layout.addWidget(self.roof_layout_photo)
         self.roof_layout_button = QPushButton('Roof Layout Estimation')
+        self.roof_layout_button.clicked.connect(self.roof_layout_estimation)
         self.roof_layout.setSpacing(0)
         self.roof_layout.addWidget(self.roof_layout_button)
         
@@ -144,41 +152,70 @@ class MainWindow(QMainWindow):
         self.other_modules.setSpacing(50)
 
         self.contributors_list = QLabel()
-        self.contributors_list.setText("<html><ul>Contributors:<li>Kushagra Srivastava</li><li>Dhruv Patel</li><li>Aditya Kumar Jha</li><li>Mohhit Kumar Jha</li><li>Jaskirat Singh</li><li>Ravi Kiran Sarvadevabhatla</li><li>Pradeep Kumar Ramancharla</li><li>Harikumar Kandath</li><li>K. Madhava Krishna</li></ul></html>")
+        self.contributors_list.setText("<html><ul>Contributors:<li>Kushagra Srivastava</li><li>Dhruv Patel</li><li>Aditya Kumar Jha</li><li>Mohhit Kumar Jha</li><li>Ekansh Gupta</li><li>Jaskirat Singh</li><li>Ravi Kiran Sarvadevabhatla</li><li>Pradeep Kumar Ramancharla</li><li>Harikumar Kandath</li><li>K. Madhava Krishna</li></ul></html>")
 
         self.main_layout.addLayout(self.distance_modules)
         self.main_layout.addLayout(self.other_modules)
         self.main_layout.addWidget(self.contributors_list)
-        self.main_layout.setSpacing(10)
+        self.main_layout.setSpacing(100)
         self.main_layout.addStretch(1)
 
         widget = QWidget()
-        # self.setCentralWidget(widget)
         widget.setLayout(self.main_layout)
-        self.setCentralWidget(widget)
-        # self.setWidget(widget)
-        # self.setWidgetResizable(True)
+        self.setWidget(widget)
+        self.setWidgetResizable(True)
     
     def roof_area_calculation(self,checked):
-        # self.close()
-        container = client.containers.get('4cd0a2253a46')
-        container.exec_run('python3 test.py --datadir ../../../images/roofimages --resultdir ../../../RoofResults', workdir='/root/RoofSegmentation/LEDNet/test/')
         self.close()
+        # container = client.containers.get('4cd0a2253a46')
+        # container.exec_run('python3 test.py --datadir ../../../images/roofimages --resultdir ../../../RoofResults', workdir='/root/RoofSegmentation/LEDNet/test/')
         if self.myApp is None:
-            self.myApp = DisplayResults()
+            self.myApp = DisplayResults(mode="RoofAreaCalculation")
         self.myApp.show()
 
-    def getFileName(self):
-        global filepath
-        response = QFileDialog.getOpenFileName(self, str("Select a video ile"),
+
+    
+    def roof_layout_estimation(self,checked):
+        self.close()
+        if self.myApp is None:
+            self.myApp = DisplayResults(mode="RoofLayoutEstimation")
+        self.myApp.show()
+    
+    def frontal_mode_results(self,checked):
+        self.close()
+        if self.myApp is None:
+            self.myApp = DisplayResults(mode="DistanceModuleFrontalMode")
+        self.myApp.show()
+
+    def inbetween_mode_results(self,checked):
+        self.close()
+        if self.myApp is None:
+            self.myApp = DisplayResults(mode="DistanceModuleInBetweenMode")
+        self.myApp.show()
+    
+    def roof_mode_results(self,checked):
+        self.close()
+        if self.myApp is None:
+            self.myApp = DisplayResults(mode="DistanceModuleRoofMode")
+        self.myApp.show()
+    
+    def GetVideoFile(self):
+        global videopath
+        response = QFileDialog.getOpenFileName(self, str("Select a video file"),
                                        os.getcwd(),
                                        str("Videos (*.mp4 *.mov)"))
-        filepath = response
-
+        videopath = response
+    
+    def GetLogFile(self):
+        global logpath
+        response = QFileDialog.getOpenFileName(self, str("Select a log file"),
+                                       os.getcwd(),
+                                       str("Logs (*.csv)"))
+        logpath = response
 if __name__ == '__main__':
 
     app = QApplication(sys.argv)
-    app.setStyleSheet('''QWidget {font-size: 18px; }''')
+    app.setStyleSheet('''QWidget {font-size: 24px; }''')
     
     myApp = MainWindow()
     myApp.show()
