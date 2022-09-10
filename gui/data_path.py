@@ -9,13 +9,36 @@ import glob
 import docker
 import shutil
 # client = docker.from_env()
+class DisplayFinalResults(QWidget):
+
+  def __init__(self, mode):
+    super(DisplayFinalResults, self).__init__()
+    layout = QVBoxLayout()
+    self.label = QLabel()
+    self.setMinimumSize(500,500)
+    layout.addWidget(self.label)
+    self.mode = mode
+    self.content = QTextEdit()
+    layout.addWidget(self.content)
+    self.setWindowTitle("Displaying Final Results for " + self.mode)
+    self.setLayout(layout)
+    self.load_text()
+  
+  def load_text(self):
+
+    filenames = os.path.join(self.mode, 'final_results','final_results.txt')
+    f = open(filenames, 'r')
+    with f:
+        data = f.read()
+        self.content.setText(data)
+
 class DisplayResults(QScrollArea):
     def __init__(self,mode):
         super(DisplayResults,self).__init__()
         
         self.setWindowTitle("Displaying Intermediate Results")
         # self.window_width, self.window_height = 1800, 600
-        
+        self.DisplayFinalResultsApp = None
         # self.setWindowState(Qt.WindowMaximized)
         self.window_height, self.window_width, _ = cv2.imread('./gui_images/'+mode+'.png').shape
         self.setMinimumSize(self.window_width+80, self.window_height+80)
@@ -85,12 +108,17 @@ class DisplayResults(QScrollArea):
         self.mode_photo.setPixmap(QtGui.QPixmap(latest_image))
 
     def show_final_results(self):
-        
+        # For testing purposes
+        # with open(self.final_results_path+'/final_results.txt', 'w') as f:
+        #     f.write('done\n Final Results shown')
         latest_file = glob.glob(self.final_results_path + '/*')
         if len(latest_file) == 0:
             pass
         elif 'final_results' in latest_file[0].split('/')[-1]:
             self.close()
+            if self.DisplayFinalResultsApp is None:
+                self.DisplayFinalResultsApp = DisplayFinalResults(mode=self.mode)
+            self.DisplayFinalResultsApp.show()
 
 class MainWindow(QScrollArea):
     def __init__(self):
