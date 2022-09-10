@@ -7,6 +7,7 @@ import os
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, Qt,QObject
 import glob
 import docker
+import shutil
 # client = docker.from_env()
 class DisplayResults(QScrollArea):
     def __init__(self,mode):
@@ -23,14 +24,29 @@ class DisplayResults(QScrollArea):
         self.main_layout.setAlignment(Qt.AlignTop)
         self.mode_photo = QtWidgets.QLabel()
         self.mode_photo.setPixmap(QtGui.QPixmap(os.path.join("./gui_images", self.mode+'.png')))
-        self.mode_photo.setScaledContents(True)
+        # self.mode_photo.setScaledContents(True)
+        self.mode_photo.setAlignment(Qt.AlignCenter)
         self.main_layout.addWidget(self.mode_photo)
 
         folder_path = self.mode
         self.intermediate_results_path = os.path.join(folder_path, 'intermediate_results')
         self.final_results_path = os.path.join(folder_path, 'final_results')
-        os.makedirs(self.intermediate_results_path, exist_ok=True)
-        os.makedirs(self.final_results_path, exist_ok=True)
+        
+        if os.path.exists(self.intermediate_results_path):
+            files = os.listdir(self.intermediate_results_path)
+            for f in files:
+                os.remove(os.path.join(self.intermediate_results_path,f))
+        else:
+            os.makedirs(self.intermediate_results_path)
+        
+        if os.path.exists(self.final_results_path):
+            files = os.listdir(self.final_results_path)
+            for f in files:
+                os.remove(os.path.join(self.final_results_path,f))
+        else:
+            os.makedirs(self.final_results_path)
+
+        shutil.copy(os.path.join("./gui_images", self.mode+'.png'), self.intermediate_results_path)
 
         self.buttons = QHBoxLayout()
 
@@ -69,7 +85,12 @@ class DisplayResults(QScrollArea):
         self.mode_photo.setPixmap(QtGui.QPixmap(latest_image))
 
     def show_final_results(self):
-        self.close()
+        
+        latest_file = glob.glob(self.final_results_path + '/*')
+        if len(latest_file) == 0:
+            pass
+        elif 'final_results' in latest_file[0].split('/')[-1]:
+            self.close()
 
 class MainWindow(QScrollArea):
     def __init__(self):
