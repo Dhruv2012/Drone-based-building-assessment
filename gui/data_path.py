@@ -26,8 +26,8 @@ class DisplayFinalResults(QWidget):
   
   def load_text(self):
 
-    filenames = os.path.join(self.mode, 'final_results','final_results.txt')
-    f = open(filenames, 'r')
+    filenames = glob.glob(os.path.join(self.mode, 'final_results/*.txt'))
+    f = open(filenames[0], 'r')
     with f:
         data = f.read()
         self.content.setText(data)
@@ -109,7 +109,7 @@ class DisplayResults(QScrollArea):
 
     def show_final_results(self):
         # For testing purposes
-        # with open(self.final_results_path+'/final_results.txt', 'w') as f:
+        # with open(self.final_results_path+'/final_results1.txt', 'w') as f:
         #     f.write('done\n Final Results shown')
         latest_file = glob.glob(self.final_results_path + '/*')
         if len(latest_file) == 0:
