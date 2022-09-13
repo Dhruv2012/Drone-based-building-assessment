@@ -24,6 +24,7 @@ class DisplayFinalResults(QWidget):
     self.setMinimumSize(500,500)
     layout.addWidget(self.label)
     self.mode = mode
+    self.results_path = self.mode + "Results"
     self.content = QTextEdit()
     layout.addWidget(self.content)
     self.setWindowTitle("Displaying Final Results for " + self.mode)
@@ -32,7 +33,7 @@ class DisplayFinalResults(QWidget):
   
   def load_text(self):
 
-    filenames = glob.glob(os.path.join(self.mode, 'final_results/*.txt'))
+    filenames = glob.glob(os.path.join(self.results_path, 'final_results/*.txt'))
     f = open(filenames[0], 'r')
     with f:
         data = f.read()
@@ -45,9 +46,8 @@ class Worker(QObject):
     def __init__(self, mode):
 
         super(Worker, self).__init__()
-        self.mode = mode
-        self.log_file = os.path.join(self.mode, 'log.txt')
-        # self.log_file = 'log.txt'
+        self.results_path = mode + 'Results'
+        self.log_file = os.path.join(self.results_path, 'log.txt')
 
     def showlogs(self):
 
@@ -55,7 +55,7 @@ class Worker(QObject):
         with open(self.log_file, 'r') as f:
             line=f.read()
             self.progress.emit()
-            if os.path.exists(os.path.join(self.mode, 'final_results/final_results.txt')):
+            if os.path.exists(os.path.join(self.results_path, 'final_results/final_results.txt')):
                 f.close()
         self.finished.emit()
         
@@ -67,7 +67,7 @@ class DisplayResults(QScrollArea):
         # self.window_width, self.window_height = 1800, 600
         self.DisplayFinalResultsApp = None
         # self.setWindowState(Qt.WindowMaximized)
-        self.window_height, self.window_width, _ = cv2.imread('./gui_images/'+mode+'.png').shape
+        self.window_height, self.window_width, _ = cv2.imread('./GuiImages/'+mode+'.png').shape
         self.setMinimumSize(self.window_width+300, self.window_height+80)
         self.mode = mode
         
@@ -76,15 +76,15 @@ class DisplayResults(QScrollArea):
         self.main_layout = QVBoxLayout()
         self.main_layout.setAlignment(Qt.AlignTop)
         self.mode_photo = QtWidgets.QLabel()
-        self.mode_photo.setPixmap(QtGui.QPixmap(os.path.join("./gui_images", self.mode+'.png')))
+        self.mode_photo.setPixmap(QtGui.QPixmap(os.path.join("./GuiImages", self.mode+'.png')))
         self.mode_photo.setScaledContents(True)
         # self.mode_photo.setScaledContents(True)
         self.mode_photo.setAlignment(Qt.AlignCenter)
         self.main_layout.addWidget(self.mode_photo)
 
-        folder_path = self.mode
-        self.intermediate_results_path = os.path.join(folder_path, 'intermediate_results')
-        self.final_results_path = os.path.join(folder_path, 'final_results')
+        self.results_path = self.mode + 'Results'
+        self.intermediate_results_path = os.path.join(self.results_path, 'intermediate_results')
+        self.final_results_path = os.path.join(self.results_path, 'final_results')
         
         if os.path.exists(self.intermediate_results_path):
             files = os.listdir(self.intermediate_results_path)
@@ -100,10 +100,10 @@ class DisplayResults(QScrollArea):
         else:
             os.makedirs(self.final_results_path)
         
-        with open(os.path.join(self.mode,'log.txt') , 'w') as f:
+        with open(os.path.join(self.results_path,'log.txt') , 'w') as f:
             f.close()
 
-        shutil.copy(os.path.join("./gui_images", self.mode+'.png'), self.intermediate_results_path)
+        shutil.copy(os.path.join("./GuiImages", self.mode+'.png'), self.intermediate_results_path)
 
         self.buttons = QHBoxLayout()
         self.final_button = QPushButton('Show Final Results')
@@ -149,16 +149,14 @@ class DisplayResults(QScrollArea):
 
 
     def ShowFinalResults(self):
-        # For testing purposes
-        # with open(self.final_results_path+'/final_results1.txt', 'w') as f:
-        #     f.write('done\n Final Results shown')
+ 
         latest_file = glob.glob(self.final_results_path + '/*')
         if len(latest_file) == 0:
             pass
         elif 'final_results' in latest_file[0].split('/')[-1]:
             self.p.kill()
             self.final_button.setDisabled(False)
-            self.final_button.setText('Click Here View Final Results')
+            self.final_button.setText('Click Here to View Final Results')
             self.final_button.clicked.connect(self.DisplayFinalResultsWindow)
 
     def SetLogThread(self):
@@ -206,7 +204,7 @@ class MainWindow(QScrollArea):
 
         self.frontal_mode = QVBoxLayout()
         self.frontal_mode_photo = QtWidgets.QLabel()
-        self.frontal_mode_photo.setPixmap(QtGui.QPixmap("./gui_images/frontalviewdronepov.jpg"))
+        self.frontal_mode_photo.setPixmap(QtGui.QPixmap("./GuiImages/frontalviewdronepov.jpg"))
         self.frontal_mode.addWidget(self.frontal_mode_photo)
         self.frontal_mode_button = QPushButton('Frontal Mode')
         self.frontal_mode_button.clicked.connect(self.frontal_mode_results)
@@ -217,7 +215,7 @@ class MainWindow(QScrollArea):
 
         self.inbetween_mode = QVBoxLayout()
         self.inbetween_mode_photo = QtWidgets.QLabel()
-        self.inbetween_mode_photo.setPixmap(QtGui.QPixmap("./gui_images/inbetweenviewdronepov.jpg"))
+        self.inbetween_mode_photo.setPixmap(QtGui.QPixmap("./GuiImages/inbetweenviewdronepov.jpg"))
         self.inbetween_mode.addWidget(self.inbetween_mode_photo)
         self.inbetween_mode_button = QPushButton('In-Between Mode')
         self.inbetween_mode_button.clicked.connect(self.inbetween_mode_results)
@@ -227,7 +225,7 @@ class MainWindow(QScrollArea):
 
         self.roof_mode = QVBoxLayout()
         self.roof_mode_photo = QtWidgets.QLabel()
-        self.roof_mode_photo.setPixmap(QtGui.QPixmap("./gui_images/rooftopdronepov.jpg"))
+        self.roof_mode_photo.setPixmap(QtGui.QPixmap("./GuiImages/rooftopdronepov.jpg"))
         self.roof_mode.addWidget(self.roof_mode_photo)
         self.roof_mode_button = QPushButton('Roof Mode')
         self.roof_mode_button.clicked.connect(self.roof_mode_results)
@@ -242,7 +240,7 @@ class MainWindow(QScrollArea):
         self.other_modules.addStretch(1)
         self.roofarea = QVBoxLayout()
         self.roofarea_photo = QtWidgets.QLabel()
-        self.roofarea_photo.setPixmap(QtGui.QPixmap("./gui_images/roofareacalculation.png"))
+        self.roofarea_photo.setPixmap(QtGui.QPixmap("./GuiImages/roofareacalculation.png"))
         self.roofarea.addWidget(self.roofarea_photo)
         self.roof_area_button = QPushButton('Roof Area Calculation')
         self.roofarea.addWidget(self.roof_area_button)
@@ -253,7 +251,7 @@ class MainWindow(QScrollArea):
 
         self.roof_layout = QVBoxLayout()
         self.roof_layout_photo = QtWidgets.QLabel()
-        self.roof_layout_photo.setPixmap(QtGui.QPixmap("./gui_images/rooflayoutestimation.png"))
+        self.roof_layout_photo.setPixmap(QtGui.QPixmap("./GuiImages/rooflayoutestimation.png"))
         self.roof_layout.addWidget(self.roof_layout_photo)
         self.roof_layout_button = QPushButton('Roof Layout Estimation')
         self.roof_layout_button.clicked.connect(self.roof_layout_estimation)
