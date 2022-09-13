@@ -1,14 +1,20 @@
+import datetime
+import time
 from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 import sys
 import cv2
 import os
-from PyQt5.QtCore import pyqtSignal, pyqtSlot, Qt,QObject
+from PyQt5.QtCore import pyqtSignal, pyqtSlot, Qt,QObject, QRect, QThread, QMutex
 import glob
 import docker
 import shutil
+import subprocess
+# import threading
 # client = docker.from_env()
+line = ""
+mutex = QMutex()
 class DisplayFinalResults(QWidget):
 
   def __init__(self, mode):
@@ -32,6 +38,27 @@ class DisplayFinalResults(QWidget):
         data = f.read()
         self.content.setText(data)
 
+class Worker(QObject):
+    
+    finished = pyqtSignal()
+    progress = pyqtSignal()
+    def __init__(self, mode):
+
+        super(Worker, self).__init__()
+        self.mode = mode
+        self.log_file = os.path.join(self.mode, 'log.txt')
+        # self.log_file = 'log.txt'
+
+    def showlogs(self):
+
+        global line
+        with open(self.log_file, 'r') as f:
+            line=f.read()
+            self.progress.emit()
+            if os.path.exists(os.path.join(self.mode, 'final_results/final_results.txt')):
+                f.close()
+        self.finished.emit()
+        
 class DisplayResults(QScrollArea):
     def __init__(self,mode):
         super(DisplayResults,self).__init__()
@@ -41,12 +68,16 @@ class DisplayResults(QScrollArea):
         self.DisplayFinalResultsApp = None
         # self.setWindowState(Qt.WindowMaximized)
         self.window_height, self.window_width, _ = cv2.imread('./gui_images/'+mode+'.png').shape
-        self.setMinimumSize(self.window_width+80, self.window_height+80)
+        self.setMinimumSize(self.window_width+300, self.window_height+80)
         self.mode = mode
+        
+        self.layout_final = QHBoxLayout()
+        self.layout_final.setSpacing(0)
         self.main_layout = QVBoxLayout()
         self.main_layout.setAlignment(Qt.AlignTop)
         self.mode_photo = QtWidgets.QLabel()
         self.mode_photo.setPixmap(QtGui.QPixmap(os.path.join("./gui_images", self.mode+'.png')))
+        self.mode_photo.setScaledContents(True)
         # self.mode_photo.setScaledContents(True)
         self.mode_photo.setAlignment(Qt.AlignCenter)
         self.main_layout.addWidget(self.mode_photo)
@@ -68,46 +99,56 @@ class DisplayResults(QScrollArea):
                 os.remove(os.path.join(self.final_results_path,f))
         else:
             os.makedirs(self.final_results_path)
+        
+        with open(os.path.join(self.mode,'log.txt') , 'w') as f:
+            f.close()
 
         shutil.copy(os.path.join("./gui_images", self.mode+'.png'), self.intermediate_results_path)
 
         self.buttons = QHBoxLayout()
-
-        self.intermediate_button = QPushButton('Show Intermediate Results')
-        self.intermediate_button.clicked.connect(self.show_intermediate_results)
-        self.buttons.addWidget(self.intermediate_button)
-        
         self.final_button = QPushButton('Show Final Results')
-        self.final_button.clicked.connect(self.show_final_results)
+        self.final_button.clicked.connect(self.ShowFinalResults)
+        self.final_button.setDisabled(True)
         self.buttons.addWidget(self.final_button)
 
         self.main_layout.addLayout(self.buttons)
         self.main_layout.setSpacing(0)
+        self.layout_final.addLayout(self.main_layout)
+
+
+        self.progress = QLabel()
+        self.layout_final.addWidget(self.progress)
+        self.content = QTextEdit()
+        self.scroll_bar = self.content.verticalScrollBar()
+
+        self.scroll_bar.setValue(self.scroll_bar.maximum())
+        self.layout_final.addWidget(self.content)
+        self.layout_final.setSpacing(0)
 
         widget = QWidget()
-        widget.setLayout(self.main_layout)
+        widget.setLayout(self.layout_final)
         self.setWidget(widget)
         self.setWidgetResizable(True)
+
+        self.timer = QtCore.QTimer(self)
+        self.timer.timeout.connect(self.SetLogThread)
+        self.timer.start(1000)
+        
+        self.timer_intermediate = QtCore.QTimer(self)
+        self.timer_intermediate.timeout.connect(self.ShowIntermediateResults)
+        self.timer_intermediate.start(1000)
+
+        self.p=subprocess.Popen("./"+self.mode+'.sh', shell=True)
     
-    def retranslateUi(self, DisplayResults):
-        _translate = QtCore.QCoreApplication.translate
-        self.setWindowTitle(_translate("Displaying Intermediate Results", "Displaying Intermediate Results"))
-        self.final_button.setText(_translate("Displaying Intermediate Results", "Skip to Final Results"))
-        self.intermediate_button.setText(_translate("Displaying Intermediate Results", "Show Intermediate Results"))
 
-    def show_intermediate_results(self):
-
+    def ShowIntermediateResults(self):
 
         latest_image = max(glob.iglob(self.intermediate_results_path + '/*'), key=os.path.getctime)
-        if latest_image == self.intermediate_results_path+'/done.txt':
-            self.mode_photo.setPixmap(QtGui.QPixmap(os.path.join("./gui_images", self.mode+'.png')))
-            _translate = QtCore.QCoreApplication.translate
-            
-            self.intermediate_button.setText(_translate("Displaying Intermediate Results", "All Intermediate Results Displayed. Press Again to Quit."))
-            self.intermediate_button.clicked.connect(self.close)
         self.mode_photo.setPixmap(QtGui.QPixmap(latest_image))
+        self.mode_photo.setScaledContents(True)
 
-    def show_final_results(self):
+
+    def ShowFinalResults(self):
         # For testing purposes
         # with open(self.final_results_path+'/final_results1.txt', 'w') as f:
         #     f.write('done\n Final Results shown')
@@ -115,10 +156,33 @@ class DisplayResults(QScrollArea):
         if len(latest_file) == 0:
             pass
         elif 'final_results' in latest_file[0].split('/')[-1]:
-            self.close()
-            if self.DisplayFinalResultsApp is None:
-                self.DisplayFinalResultsApp = DisplayFinalResults(mode=self.mode)
-            self.DisplayFinalResultsApp.show()
+            self.p.kill()
+            self.final_button.setDisabled(False)
+            self.final_button.setText('Click Here View Final Results')
+            self.final_button.clicked.connect(self.DisplayFinalResultsWindow)
+
+    def SetLogThread(self):
+
+        self.thread = QThread()
+        self.worker = Worker(self.mode)
+        self.worker.moveToThread(self.thread)
+        self.thread.started.connect(self.worker.showlogs)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+        self.thread.start()
+        self.thread.finished.connect(self.ShowFinalResults)
+        self.worker.progress.connect(self.DisplayLogs)
+    
+    def DisplayLogs(self):
+        self.content.setText(line)
+        self.scroll_bar.setValue(self.scroll_bar.maximum())
+    
+    def DisplayFinalResultsWindow(self):
+
+        self.DisplayFinalResultsApp = DisplayFinalResults(mode=self.mode)
+        self.DisplayFinalResultsApp.show()
+        # self.close()
 
 class MainWindow(QScrollArea):
     def __init__(self):
@@ -261,6 +325,7 @@ class MainWindow(QScrollArea):
                                        os.getcwd(),
                                        str("Logs (*.csv)"))
         logpath = response
+
 if __name__ == '__main__':
 
     app = QApplication(sys.argv)
