@@ -116,9 +116,9 @@ if __name__ == "__main__":
         # H[:2, :3] = A
         # H_cur = H_old.dot(H)
         # print(H_cur, A)
-        warp_naive = cv2.warpAffine(warp_naive, A, (prev_frame.shape[1] + cur_frame.shape[1], 1000), flags = cv2.INTER_NEAREST)
-        warp_mask = cv2.warpAffine(warp_mask, A, (prev_mask.shape[1] + prev_frame.shape[1], 1000), flags = cv2.INTER_NEAREST)
-        warp_roof_mask = cv2.warpAffine(warp_roof_mask, A, (prev_mask.shape[1] + prev_frame.shape[1], 1000), flags = cv2.INTER_NEAREST)
+        warp_naive = cv2.warpAffine(warp_naive, A, (prev_frame.shape[1] + cur_frame.shape[1], 3000), flags = cv2.INTER_NEAREST)
+        warp_mask = cv2.warpAffine(warp_mask, A, (prev_mask.shape[1] + prev_frame.shape[1], 3000), flags = cv2.INTER_NEAREST)
+        warp_roof_mask = cv2.warpAffine(warp_roof_mask, A, (prev_mask.shape[1] + prev_frame.shape[1], 3000), flags = cv2.INTER_NEAREST)
         # warp_naive = cv2.warpPerspective(warp_naive, A, (prev_frame.shape[1] + cur_frame.shape[1], 3000), flags = cv2.INTER_NEAREST)
         warp_naive[:cur_frame.shape[0], :cur_frame.shape[1]] = cur_frame
         # warp_mask[:cur_mask.shape[0], :cur_mask.shape[1]] = cur_mask
