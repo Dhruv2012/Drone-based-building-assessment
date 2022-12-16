@@ -1,6 +1,7 @@
 # Drone-based-building-assessment
 ### Project - "Identification of salient structural elements from buildings using UAVs"
-The project aims to extract information such as planShape/Area, Storey and window count, their height and so on of the buildings from the camera feed through drone. It is a part of IHub - Mobility Research at IIIT Hyderabad.
+The project aims to extract information such as planShape/Area, Storey and window count, their height and so on of the buildings from the camera feed through drone. It is a part of IHub - Mobility Research at IIIT Hyderabad. More details regarding current work and progress can be found at [uvrsabi.github.io](https://uvrsabi.github.io)
+
 
 #### Objectives of Pilot Study:
 To identify salient structural elements in buildings from RGB images captured using a UAV.
@@ -10,7 +11,7 @@ To identify salient structural elements in buildings from RGB images captured us
 4) Building Plan estimation
 
 #### Dataset:
-We have made our own custom dataset by capturing buildings on IIIT-H campus through a drone. In addition, we have also used the open-source zju_facade dataset to train our models. IIIT-H campus window dataset can be found [here](https://drive.google.com/drive/folders/1fxJP8x9y8I23DFWardhpMM5BZAUY4WtM?usp=sharing).
+We have prepared our custom dataset by capturing buildings on IIIT-H campus through a drone. In addition, we have also used the open-source zju_facade dataset to train our models. IIIT-H campus window dataset can be found [here](https://drive.google.com/drive/folders/1fxJP8x9y8I23DFWardhpMM5BZAUY4WtM?usp=sharing).
 
 <p>
   <img src="readme_images/Dataset.drawio.png" width="45%" height="90%"/>     
@@ -23,10 +24,6 @@ For window detection task (The ground truths are bounding boxes shown in red)
 </p>
 
 For plan-shape/area (The ground truths are segmented masks in white)
-
-### Progress till now:
-Please find our current progress in the following presentation.
-<a href="https://docs.google.com/presentation/d/1Oj5h2Y_G0Geoxrf7Ti8xwFlPiwgsrAcYaunN2R8y6zE/edit?usp=sharing" target="_blank">Presentation Link</a>
 
 
 ### Directory Structure:
@@ -115,9 +112,6 @@ Now, we estimate the area(in m²) from the contour Area of the segmented buildin
 <br />
 <br />
 
-### Publications:
--> Dhruv Patel, Shivani Chepuri, Sarvesh Thakur, Harikumar Kandath, Ravi Kiran S, K. Madhava Krishna, “Identifying and estimating salient parameters of a building using UAV based remote sensing”, submitted to IEEE International Conference on Unmanned Aircraft Systems (ICUAS) 2022. 
-
 <br />
 
 ### Objectives for next phase:
@@ -129,8 +123,7 @@ Now, we estimate the area(in m²) from the contour Area of the segmented buildin
 -> Toppling/falling hazard \
 -> Building level (flat or tilted ground)
 
-
-<br />
+More details regarding current work and progress can be found at [uvrsabi.github.io](https://uvrsabi.github.io)
 
 ### Project Team:
 Dhruv Patel - Project Associate, Robotics Research Centre(RRC), IIIT Hyderabad \
